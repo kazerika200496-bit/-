@@ -1,0 +1,19 @@
+
+> ishida-ordering-app@0.1.0 build
+> next build
+
+   Creating an optimized production build ...
+ 笨・Compiled successfully
+   Linting and checking validity of types ...
+Failed to compile.
+
+./src/app/admin/page.tsx:4:27
+Type error: Cannot find module '@/data/materials' or its corresponding type declarations.
+
+  2 | 
+  3 | import { useEffect, useState } from 'react';
+> 4 | import { materials } from '@/data/materials';
+    |                           ^
+  5 | import { suppliers } from '@/data/suppliers';
+  6 | import Link from 'next/link';
+  7 | 
