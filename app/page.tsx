@@ -244,18 +244,18 @@ export default function Home() {
                             <div style={{ flex: 1, backgroundColor: '#eaf4ff', padding: '15px', borderRadius: '12px', border: '1px solid #cce5ff' }}>
                                 <div style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '10px', color: '#004085' }}>【外出先・4G用】</div>
                                 <img
-                                    src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`https://famous-bushes-melt.loca.lt`)}`}
-                                    alt="External QR"
+                                    src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`https://ishida-ordering-app.vercel.app`)}`}
+                                    alt="Production QR"
                                     style={{ width: '150px', height: '150px', marginBottom: '10px' }}
                                 />
                                 <div style={{ fontSize: '11px', color: '#004085', wordBreak: 'break-all', fontWeight: 'bold' }}>
-                                    https://famous-bushes-melt.loca.lt
+                                    ishida-ordering-app.vercel.app
                                 </div>
-                                <div style={{ fontSize: '9px', color: '#666', marginTop: '5px' }}>※開発用の一時的なURLです</div>
+                                <div style={{ fontSize: '9px', color: '#28a745', marginTop: '5px', fontWeight: 'bold' }}>✓ 本番稼働中（いつでもアクセス可）</div>
                             </div>
                         </div>
                         <p style={{ fontSize: '12px', color: '#999', marginTop: '20px' }}>
-                            ※外部（外出先）から利用する場合は、ngrokやサーバーへのデプロイが必要です。
+                            ※本番環境（Vercel）にデプロイ済みです。今後、URLが変わることはありません。
                         </p>
                     </div>
                 </div>
