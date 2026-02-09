@@ -2,16 +2,33 @@
 
 import React from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
-import { LOCATIONS, SUPPLIERS, ITEMS, MOCK_ORDERS } from '../../mockData';
+import { LOCATIONS as INITIAL_LOCATIONS, SUPPLIERS as INITIAL_SUPPLIERS, ITEMS as INITIAL_ITEMS, MOCK_ORDERS } from '../../mockData';
+import { Item, Location, Supplier, Order } from '../../types';
 
 export default function PrintableOrder() {
     const params = useParams();
     const searchParams = useSearchParams();
     const orderId = params.orderId as string;
 
-    // In a real app, we'd fetch the order by ID. 
-    // For this demo, we'll try to find it in MOCK_ORDERS.
-    const order = MOCK_ORDERS.find(o => o.id === orderId);
+    const [items, setItems] = React.useState<Item[]>(INITIAL_ITEMS);
+    const [locations, setLocations] = React.useState<Location[]>(INITIAL_LOCATIONS);
+    const [suppliers, setSuppliers] = React.useState<Supplier[]>(INITIAL_SUPPLIERS);
+    const [order, setOrder] = React.useState<Order | null>(null);
+
+    React.useEffect(() => {
+        const savedItems = localStorage.getItem('master_items');
+        const savedLocs = localStorage.getItem('master_locations');
+        const savedSups = localStorage.getItem('master_suppliers');
+        const savedOrders = localStorage.getItem('local_orders');
+
+        if (savedItems) setItems(JSON.parse(savedItems));
+        if (savedLocs) setLocations(JSON.parse(savedLocs));
+        if (savedSups) setSuppliers(JSON.parse(savedSups));
+
+        const allOrders = savedOrders ? JSON.parse(savedOrders) : MOCK_ORDERS;
+        const foundOrder = allOrders.find((o: Order) => o.id === orderId);
+        setOrder(foundOrder || null);
+    }, [orderId]);
 
     if (!order) {
         return (
@@ -22,8 +39,8 @@ export default function PrintableOrder() {
         );
     }
 
-    const source = LOCATIONS.find(l => l.id === order.sourceId);
-    const destination = SUPPLIERS.find(s => s.id === order.destinationId) || LOCATIONS.find(l => l.id === order.destinationId);
+    const source = locations.find(l => l.id === order.sourceId);
+    const destination = suppliers.find(s => s.id === order.destinationId) || locations.find(l => l.id === order.destinationId);
 
     return (
         <div style={{
@@ -85,8 +102,8 @@ export default function PrintableOrder() {
                                 <td style={{ border: '1px solid #000', padding: '10px' }}>{item.itemName}</td>
                                 <td style={{ border: '1px solid #000', padding: '10px', textAlign: 'center', fontWeight: 'bold' }}>{item.quantity}</td>
                                 <td style={{ border: '1px solid #000', padding: '10px', textAlign: 'center' }}>{item.unit}</td>
-                                <td style={{ border: '1px solid #000', padding: '10px', textAlign: 'right' }}>¥{item.price.toLocaleString()}</td>
-                                <td style={{ border: '1px solid #000', padding: '10px', textAlign: 'right' }}>¥{(item.price * item.quantity).toLocaleString()}</td>
+                                <td style={{ border: '1px solid #000', padding: '10px', textAlign: 'right' }}>¥{(item.price ?? 0).toLocaleString()}</td>
+                                <td style={{ border: '1px solid #000', padding: '10px', textAlign: 'right' }}>¥{((item.price ?? 0) * item.quantity).toLocaleString()}</td>
                             </tr>
                         ))}
                         {/* Fill empty rows to maintain A4 height if needed */}

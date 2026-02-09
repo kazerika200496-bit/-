@@ -2,19 +2,30 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { MOCK_ORDERS, LOCATIONS, SUPPLIERS } from '../mockData';
-import { Order } from '../types';
+import { MOCK_ORDERS, LOCATIONS as INITIAL_LOCATIONS, SUPPLIERS as INITIAL_SUPPLIERS } from '../mockData';
+import { Order, Location, Supplier } from '../types';
 
 export default function HistoryPage() {
     const [orders, setOrders] = useState<Order[]>([]);
+    const [locations, setLocations] = useState<Location[]>(INITIAL_LOCATIONS);
+    const [suppliers, setSuppliers] = useState<Supplier[]>(INITIAL_SUPPLIERS);
 
     useEffect(() => {
-        // In a real app, we would fetch from an API
-        setOrders(MOCK_ORDERS);
+        const savedLocs = localStorage.getItem('master_locations');
+        const savedSups = localStorage.getItem('master_suppliers');
+        const savedOrders = localStorage.getItem('local_orders');
+
+        if (savedLocs) setLocations(JSON.parse(savedLocs));
+        if (savedSups) setSuppliers(JSON.parse(savedSups));
+        if (savedOrders) {
+            setOrders(JSON.parse(savedOrders));
+        } else {
+            setOrders(MOCK_ORDERS);
+        }
     }, []);
 
-    const getLocationName = (id: string) => LOCATIONS.find(l => l.id === id)?.name || id;
-    const getSupplierName = (id: string) => SUPPLIERS.find(s => s.id === id)?.name || id;
+    const getLocationName = (id: string) => locations.find(l => l.id === id)?.name || id;
+    const getSupplierName = (id: string) => suppliers.find(s => s.id === id)?.name || id;
 
     return (
         <div className="container" style={{ paddingBottom: '50px' }}>

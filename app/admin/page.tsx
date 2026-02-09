@@ -8,10 +8,11 @@ import { Item, Location, Supplier } from '../types';
 export default function AdminPage() {
     const [activeTab, setActiveTab] = useState<'locations' | 'suppliers' | 'items'>('items');
 
-    // --- State with persistence ---
     const [items, setItems] = useState<Item[]>([]);
     const [locations, setLocations] = useState<Location[]>([]);
     const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+    const [isMounted, setIsMounted] = useState(false);
+    const [isDirty, setIsDirty] = useState(false);
 
     useEffect(() => {
         const savedItems = localStorage.getItem('master_items');
@@ -21,21 +22,42 @@ export default function AdminPage() {
         setItems(savedItems ? JSON.parse(savedItems) : INITIAL_ITEMS);
         setLocations(savedLocs ? JSON.parse(savedLocs) : INITIAL_LOCATIONS);
         setSuppliers(savedSups ? JSON.parse(savedSups) : INITIAL_SUPPLIERS);
+        setIsMounted(true);
     }, []);
 
-    const saveToLocal = (key: string, data: any) => {
-        localStorage.setItem(key, JSON.stringify(data));
-        alert('変更を保存しました。');
+    useEffect(() => {
+        if (isDirty) {
+            const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+                e.preventDefault();
+                e.returnValue = '';
+            };
+            window.addEventListener('beforeunload', handleBeforeUnload);
+            return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+        }
+    }, [isDirty]);
+
+    const handleReset = () => {
+        if (confirm('すべてのマスタデータをリセット（初期化）しますか？保存されている変更は失われます。')) {
+            localStorage.removeItem('master_items');
+            localStorage.removeItem('master_locations');
+            localStorage.removeItem('master_suppliers');
+            setItems(INITIAL_ITEMS);
+            setLocations(INITIAL_LOCATIONS);
+            setSuppliers(INITIAL_SUPPLIERS);
+            alert('データを初期化しました。');
+        }
     };
 
     // --- Actions ---
     const updateItem = (id: string, field: keyof Item, value: any) => {
         setItems(items.map(i => i.id === id ? { ...i, [field]: value } : i));
+        setIsDirty(true);
     };
 
     const deleteItem = (id: string) => {
         if (confirm('この品目を削除しますか？')) {
             setItems(items.filter(i => i.id !== id));
+            setIsDirty(true);
         }
     };
 
@@ -43,7 +65,10 @@ export default function AdminPage() {
         const newId = `I${String(items.length + 1).padStart(4, '0')}`;
         const newItem: Item = { id: newId, category: '新規カテゴリ', name: '新しい品目', unit: '個', price: 0 };
         setItems([...items, newItem]);
+        setIsDirty(true);
     };
+
+    if (!isMounted) return null;
 
     return (
         <div style={{
@@ -58,31 +83,60 @@ export default function AdminPage() {
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 marginBottom: '30px',
-                borderBottom: '2px solid #1a73e8',
+                borderBottom: `2px solid ${isDirty ? '#d93025' : '#1a73e8'}`,
                 paddingBottom: '15px'
             }}>
-                <h1 style={{ margin: 0, fontSize: '24px', color: '#1a73e8' }}>⚙️ マスタ管理</h1>
-                <div style={{ display: 'flex', gap: '10px' }}>
+                <h1 style={{ margin: 0, fontSize: '24px', color: isDirty ? '#d93025' : '#1a73e8' }}>
+                    ⚙️ マスタ管理 {isDirty && <span style={{ fontSize: '14px', fontWeight: 'normal', color: '#d93025', marginLeft: '10px' }}>⚠️ 未保存の変更があります</span>}
+                </h1>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                     <button
                         onClick={() => {
-                            if (activeTab === 'items') saveToLocal('master_items', items);
-                            if (activeTab === 'locations') saveToLocal('master_locations', locations);
-                            if (activeTab === 'suppliers') saveToLocal('master_suppliers', suppliers);
+                            const itemsJson = JSON.stringify(items);
+                            const locsJson = JSON.stringify(locations);
+                            const supsJson = JSON.stringify(suppliers);
+
+                            localStorage.setItem('master_items', itemsJson);
+                            localStorage.setItem('master_locations', locsJson);
+                            localStorage.setItem('master_suppliers', supsJson);
+
+                            setIsDirty(false);
+                            // Explicitly trigger a storage event for this tab (storage events only fire for OTHER tabs normally)
+                            window.dispatchEvent(new StorageEvent('storage', {
+                                key: 'master_items',
+                                newValue: itemsJson
+                            }));
+
+                            alert('変更を完全に保存しました。発注画面に戻って確認してください。');
                         }}
                         style={{
-                            padding: '10px 20px',
+                            padding: '10px 16px',
                             backgroundColor: '#34a853',
                             color: '#fff',
                             border: 'none',
                             borderRadius: '8px',
                             cursor: 'pointer',
-                            fontWeight: 'bold'
+                            fontWeight: 'bold',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
                         }}
                     >
                         💾 変更を保存
                     </button>
+                    <button
+                        onClick={handleReset}
+                        style={{
+                            padding: '10px 16px',
+                            backgroundColor: '#fff',
+                            color: '#d93025',
+                            border: '1px solid #d93025',
+                            borderRadius: '8px',
+                            cursor: 'pointer'
+                        }}
+                    >
+                        🔄 初期化
+                    </button>
                     <Link href="/" style={{
-                        padding: '10px 20px',
+                        padding: '10px 16px',
                         backgroundColor: '#6c757d',
                         color: '#fff',
                         textDecoration: 'none',
@@ -211,9 +265,18 @@ export default function AdminPage() {
                         </table>
                     )}
                 </div>
-                <div style={{ marginTop: '10px', fontSize: '12px', color: '#999' }}>
-                    ※ 変更内容はブラウザの保存領域（LocalStorage）に同期されます。
-                    本番環境ではAPI連携によるDB保存が必要です。
+                <div style={{
+                    marginTop: '20px',
+                    padding: '15px',
+                    backgroundColor: '#fff3cd',
+                    border: '1px solid #ffeeba',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    color: '#856404'
+                }}>
+                    <strong>💡 ご確認：</strong> このアプリは現在テスト版のため、変更内容は**このブラウザ（LocalStorage）にのみ**保存されます。
+                    <br />別のアカウントや別のスマホから見た場合には反映されません。
+                    <br /><strong>「💾 変更を保存」ボタンを押した時のみ、発注画面に反映されます。</strong>
                 </div>
             </main>
         </div>

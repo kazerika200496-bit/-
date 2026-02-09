@@ -4,9 +4,9 @@ import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
-    LOCATIONS,
-    SUPPLIERS,
-    ITEMS,
+    LOCATIONS as INITIAL_LOCATIONS,
+    SUPPLIERS as INITIAL_SUPPLIERS,
+    ITEMS as INITIAL_ITEMS,
     ROUTE_MAP,
     MOCK_ORDERS
 } from './mockData';
@@ -15,7 +15,9 @@ import { Item, OrderItem, Location, Supplier, Order } from './types';
 export default function Home() {
     const router = useRouter();
 
-    // --- State ---
+    const [items, setItems] = useState<Item[]>(INITIAL_ITEMS);
+    const [locations, setLocations] = useState<Location[]>(INITIAL_LOCATIONS);
+    const [suppliers, setSuppliers] = useState<Supplier[]>(INITIAL_SUPPLIERS);
     const [orderDate, setOrderDate] = useState(new Date().toISOString().split('T')[0]);
     const [sourceId, setSourceId] = useState('');
     const [destinationId, setDestinationId] = useState('');
@@ -24,12 +26,28 @@ export default function Home() {
     const [selectedCategory, setSelectedCategory] = useState('すべて');
     const [remarks, setRemarks] = useState('');
     const [localOrders, setLocalOrders] = useState<Order[]>(MOCK_ORDERS);
+    const [isMounted, setIsMounted] = useState(false);
     const [lastSubmittedId, setLastSubmittedId] = useState<string | null>(null);
     const [showAlert, setShowAlert] = useState<{ message: string, type: 'warning' | 'success' } | null>(null);
     const [showMobileModal, setShowMobileModal] = useState(false);
     const [localIp, setLocalIp] = useState<string | null>(null);
 
     useEffect(() => {
+        const loadData = () => {
+            const savedItems = localStorage.getItem('master_items');
+            const savedLocs = localStorage.getItem('master_locations');
+            const savedSups = localStorage.getItem('master_suppliers');
+            const savedOrders = localStorage.getItem('local_orders');
+
+            if (savedItems) setItems(JSON.parse(savedItems));
+            if (savedLocs) setLocations(JSON.parse(savedLocs));
+            if (savedSups) setSuppliers(JSON.parse(savedSups));
+            if (savedOrders) setLocalOrders(JSON.parse(savedOrders));
+        };
+
+        loadData();
+        setIsMounted(true);
+
         fetch('/api/network-info')
             .then(res => res.json())
             .then(data => {
@@ -38,17 +56,32 @@ export default function Home() {
                 }
             })
             .catch(err => console.error('Failed to get IP:', err));
+
+        // Sync data across tabs and on focus
+        const handleStorageChange = (e: StorageEvent) => {
+            if (['master_items', 'master_locations', 'master_suppliers', 'local_orders'].includes(e.key || '')) {
+                loadData();
+            }
+        };
+
+        window.addEventListener('storage', handleStorageChange);
+        window.addEventListener('focus', loadData);
+
+        return () => {
+            window.removeEventListener('storage', handleStorageChange);
+            window.removeEventListener('focus', loadData);
+        };
     }, []);
 
     // --- Derived Data ---
-    const categories = ['すべて', 'おすすめ', ...Array.from(new Set(ITEMS.map(i => i.category)))];
+    const categories = ['すべて', 'おすすめ', ...Array.from(new Set(items.map(i => i.category)))];
 
     const availableDestinations = useMemo(() => {
         if (!sourceId) return [];
         const destIds = ROUTE_MAP[sourceId] || [];
         const combined = [
-            ...LOCATIONS.filter(l => destIds.includes(l.id)),
-            ...SUPPLIERS.filter(s => destIds.includes(s.id))
+            ...locations.filter(l => destIds.includes(l.id)),
+            ...suppliers.filter(s => destIds.includes(s.id))
         ];
         // 重複排除 (本社工場などが両方に含まれる場合に備えて)
         const seen = new Set();
@@ -57,7 +90,7 @@ export default function Home() {
             seen.add(d.id);
             return true;
         });
-    }, [sourceId]);
+    }, [sourceId, locations, suppliers]);
 
     // 発注予測ロジック (簡易版: 過去1ヶ月で2回以上発注されたものを「おすすめ」にする)
     const recommendedItemIds = useMemo(() => {
@@ -73,7 +106,7 @@ export default function Home() {
     }, [sourceId, localOrders]);
 
     const filteredItems = useMemo(() => {
-        return ITEMS.filter(item => {
+        return items.filter(item => {
             const matchesCategory = selectedCategory === 'すべて' ||
                 (selectedCategory === 'おすすめ' ? recommendedItemIds.includes(item.id) : item.category === selectedCategory);
             const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -85,7 +118,7 @@ export default function Home() {
             const bRec = recommendedItemIds.includes(b.id) ? 1 : 0;
             return bRec - aRec;
         });
-    }, [selectedCategory, searchQuery, recommendedItemIds]);
+    }, [selectedCategory, searchQuery, recommendedItemIds, items]);
 
     const totalAmount = useMemo(() => {
         return cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -123,7 +156,7 @@ export default function Home() {
                 itemName: item.name,
                 quantity: 1,
                 unit: item.unit,
-                price: item.price || 0
+                price: item.price ?? 0
             }]);
         }
     };
@@ -156,7 +189,9 @@ export default function Home() {
             remarks
         };
 
-        setLocalOrders([newOrder, ...localOrders]);
+        const updatedOrders = [newOrder, ...localOrders];
+        setLocalOrders(updatedOrders);
+        localStorage.setItem('local_orders', JSON.stringify(updatedOrders));
         setLastSubmittedId(newId);
         setCart([]);
         setRemarks('');
@@ -165,6 +200,8 @@ export default function Home() {
         // 自動的に最上部へスクロールして通知を見せる
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
+
+    if (!isMounted) return <div style={{ padding: '50px', textAlign: 'center' }}>読み込み中...</div>;
 
     return (
         <div style={{
@@ -326,7 +363,7 @@ export default function Home() {
                                     style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', marginTop: '4px', fontSize: '14px', backgroundColor: '#fdfdfd' }}
                                 >
                                     <option value="">選択してください</option>
-                                    {LOCATIONS.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                                    {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
                                 </select>
                             </div>
                             <div>
@@ -423,7 +460,7 @@ export default function Home() {
                                         <div style={{ fontSize: '11px', color: '#999' }}>{item.category} / {item.id}</div>
                                         <div style={{ fontSize: '15px', fontWeight: 'bold', margin: '5px 0' }}>{item.name}</div>
                                         <div style={{ fontSize: '14px', color: '#1a73e8', fontWeight: 'bold' }}>
-                                            ¥{(item.price || 0).toLocaleString()}
+                                            ¥{(item.price ?? 0).toLocaleString()}
                                             <span style={{ fontSize: '12px', color: '#666', fontWeight: 'normal', marginLeft: '4px' }}>/ {item.unit}</span>
                                         </div>
                                     </div>
@@ -473,7 +510,7 @@ export default function Home() {
                                     <div key={item.itemId} style={{ marginBottom: '15px', padding: '12px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
                                         <div style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '8px' }}>{item.itemName}</div>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <div style={{ fontSize: '13px', color: '#1a73e8' }}>¥{(item.price * item.quantity).toLocaleString()}</div>
+                                            <div style={{ fontSize: '13px', color: '#1a73e8' }}>¥{((item.price ?? 0) * item.quantity).toLocaleString()}</div>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                 <button onClick={() => updateQuantity(item.itemId, -1)} style={{ width: '28px', height: '28px', borderRadius: '50%', border: '1px solid #ddd', backgroundColor: '#fff', cursor: 'pointer' }}>-</button>
                                                 <span style={{ minWidth: '20px', textAlign: 'center', fontWeight: 'bold' }}>{item.quantity}</span>
@@ -543,6 +580,27 @@ export default function Home() {
                     <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#1a73e8' }}>¥{totalAmount.toLocaleString()}</div>
                 </div>
                 <button onClick={handleSubmit} style={{ backgroundColor: '#1a73e8', color: '#fff', padding: '12px 24px', borderRadius: '8px', border: 'none', fontWeight: 'bold' }}>注文</button>
+            </div>
+
+            {/* Debug Footer */}
+            <div style={{ marginTop: '40px', padding: '20px', backgroundColor: '#fdf6e3', border: '1px solid #eee', fontSize: '12px', color: '#666', borderRadius: '8px' }}>
+                <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>🔍 診断情報</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '5px 15px' }}>
+                    <span>Domain:</span> <span>{typeof window !== 'undefined' ? window.location.host : 'N/A'}</span>
+                    <span>Sync Status:</span> <span>{localStorage.getItem('master_items') ? '✅ マスタ読み込み済' : '⚠️ 初期データを使用中'}</span>
+                    <span>Price (I0064):</span> <span>{items.find(i => i.id === 'I0064')?.price}円</span>
+                </div>
+                <hr style={{ margin: '10px 0', border: 'none', borderTop: '1px solid #ddd' }} />
+                <div style={{ display: 'flex', gap: '15px' }}>
+                    <button onClick={() => window.location.reload()} style={{ cursor: 'pointer', background: 'none', border: '1px solid #999', padding: '4px 8px', borderRadius: '4px', fontSize: '11px' }}>🔄 強制リロード</button>
+                    <button onClick={() => {
+                        localStorage.removeItem('master_items');
+                        localStorage.removeItem('master_locations');
+                        localStorage.removeItem('master_suppliers');
+                        window.location.reload();
+                    }} style={{ cursor: 'pointer', color: '#d93025', background: 'none', border: '1px solid #d93025', padding: '4px 8px', borderRadius: '4px', fontSize: '11px' }}>🗑️ 保存データを消去してリセット</button>
+                </div>
+                <div style={{ marginTop: '10px', fontSize: '10px', color: '#aaa' }}>Build: 2026/02/09-11:30</div>
             </div>
         </div>
     );
