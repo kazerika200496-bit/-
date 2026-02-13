@@ -204,43 +204,22 @@ export default function Home() {
     if (!isMounted) return <div style={{ padding: '50px', textAlign: 'center' }}>読み込み中...</div>;
 
     return (
-        <div style={{
-            maxWidth: '1200px',
-            margin: '0 auto',
-            padding: '10px',
-            fontFamily: '"Inter", "Noto Sans JP", sans-serif',
-            color: '#333',
-            backgroundColor: '#f0f2f5',
-            minHeight: '100vh',
-            paddingBottom: '80px'
-        }}>
+        <div className="container">
             {/* Header */}
-            <header style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                padding: '15px 20px',
-                backgroundColor: '#1a73e8',
-                color: '#fff',
-                borderRadius: '8px',
-                marginBottom: '20px',
-                alignItems: 'center',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-            }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ fontSize: '20px', fontWeight: 'bold' }}>いしだクリーニング 資材発注</span>
-                </div>
-                <nav style={{ display: 'flex', gap: '15px', fontSize: '14px', alignItems: 'center' }}>
+            <header>
+                <div className="header-title">いしだクリーニング 資材発注</div>
+                <nav>
                     <button
                         onClick={() => setShowMobileModal(true)}
                         style={{ background: '#ff9800', border: 'none', color: '#fff', padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold' }}
-                    >📱 外出先・スマホで使う</button>
+                    >📱 スマホ</button>
                     <Link href="/history" style={{
                         color: '#fff',
                         textDecoration: 'none',
                         backgroundColor: 'rgba(255,255,255,0.2)',
                         padding: '6px 14px',
                         borderRadius: '6px'
-                    }}>📜 履歴・再発行</Link>
+                    }}>📜 履歴</Link>
                     <Link href="/admin" style={{ color: '#fff', textDecoration: 'none' }}>⚙️ マスタ</Link>
                 </nav>
             </header>
@@ -254,23 +233,23 @@ export default function Home() {
                 }}>
                     <div style={{ backgroundColor: '#fff', padding: '30px', borderRadius: '16px', maxWidth: '400px', width: '100%', textAlign: 'center', position: 'relative' }}>
                         <button onClick={() => setShowMobileModal(false)} style={{ position: 'absolute', top: '15px', right: '15px', border: 'none', background: 'none', fontSize: '20px', cursor: 'pointer' }}>✕</button>
-                        <h3 style={{ marginBottom: '10px' }}>外出先・スマホからアクセス</h3>
+                        <h3 style={{ marginBottom: '10px' }}>スマホからアクセス</h3>
                         <p style={{ fontSize: '14px', color: '#666', marginBottom: '20px' }}>
-                            同じWi-Fiなら左、外出先からなら右の手段でアクセスできます。
+                            QRコードを読み取ってスマホで開けます。
                         </p>
 
-                        <div style={{ display: 'flex', gap: '20px', justifyContent: 'center' }}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', justifyContent: 'center' }}>
                             {/* Local Wi-Fi */}
-                            <div style={{ flex: 1, backgroundColor: '#f9f9f9', padding: '15px', borderRadius: '12px' }}>
-                                <div style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '10px' }}>【店内Wi-Fi用】</div>
+                            <div style={{ flex: '1 1 150px', backgroundColor: '#f9f9f9', padding: '15px', borderRadius: '12px' }}>
+                                <div style={{ fontSize: '11px', fontWeight: 'bold', marginBottom: '10px' }}>【店内Wi-Fi用】</div>
                                 {localIp ? (
                                     <>
                                         <img
-                                            src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`http://${localIp}:3001`)}`}
+                                            src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(`http://${localIp}:3001`)}`}
                                             alt="Local QR"
-                                            style={{ width: '150px', height: '150px', marginBottom: '10px' }}
+                                            style={{ width: '120px', height: '120px', marginBottom: '10px' }}
                                         />
-                                        <div style={{ fontSize: '11px', color: '#1a73e8', wordBreak: 'break-all' }}>
+                                        <div style={{ fontSize: '10px', color: '#1a73e8', wordBreak: 'break-all' }}>
                                             http://{localIp}:3001
                                         </div>
                                     </>
@@ -278,22 +257,18 @@ export default function Home() {
                             </div>
 
                             {/* External Access (Tunnel) */}
-                            <div style={{ flex: 1, backgroundColor: '#eaf4ff', padding: '15px', borderRadius: '12px', border: '1px solid #cce5ff' }}>
-                                <div style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '10px', color: '#004085' }}>【外出先・4G用】</div>
+                            <div style={{ flex: '1 1 150px', backgroundColor: '#eaf4ff', padding: '15px', borderRadius: '12px', border: '1px solid #cce5ff' }}>
+                                <div style={{ fontSize: '11px', fontWeight: 'bold', marginBottom: '10px', color: '#004085' }}>【外出先・4G用】</div>
                                 <img
-                                    src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`https://ishida-ordering-app.vercel.app`)}`}
+                                    src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(`https://ishida-ordering-app.vercel.app`)}`}
                                     alt="Production QR"
-                                    style={{ width: '150px', height: '150px', marginBottom: '10px' }}
+                                    style={{ width: '120px', height: '120px', marginBottom: '10px' }}
                                 />
-                                <div style={{ fontSize: '11px', color: '#004085', wordBreak: 'break-all', fontWeight: 'bold' }}>
+                                <div style={{ fontSize: '10px', color: '#004085', wordBreak: 'break-all', fontWeight: 'bold' }}>
                                     ishida-ordering-app.vercel.app
                                 </div>
-                                <div style={{ fontSize: '9px', color: '#28a745', marginTop: '5px', fontWeight: 'bold' }}>✓ 本番稼働中（いつでもアクセス可）</div>
                             </div>
                         </div>
-                        <p style={{ fontSize: '12px', color: '#999', marginTop: '20px' }}>
-                            ※本番環境（Vercel）にデプロイ済みです。今後、URLが変わることはありません。
-                        </p>
                     </div>
                 </div>
             )}
@@ -315,7 +290,7 @@ export default function Home() {
                 }}>
                     <span style={{ fontSize: '18px', fontWeight: 'bold' }}>{showAlert.message}</span>
                     {lastSubmittedId && showAlert.type === 'success' && (
-                        <div style={{ display: 'flex', gap: '15px' }}>
+                        <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', justifyContent: 'center' }}>
                             <Link
                                 href={`/printable-order/${lastSubmittedId}`}
                                 style={{
@@ -329,7 +304,7 @@ export default function Home() {
                                     boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
                                 }}
                             >
-                                🖨️ 今すぐ発注書を印刷する
+                                🖨️ 発注書を印刷
                             </Link>
                             <button
                                 onClick={() => setShowAlert(null)}
@@ -349,12 +324,12 @@ export default function Home() {
                 </div>
             )}
 
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px' }}>
+            <div className="main-layout">
                 {/* Left: Search and Selection */}
-                <div style={{ flex: '1 1 600px' }}>
+                <div className="left-panel">
                     {/* Routing */}
-                    <div style={{ backgroundColor: '#fff', padding: '15px', borderRadius: '12px', marginBottom: '15px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '15px' }}>
+                    <div className="card">
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '15px' }}>
                             <div>
                                 <label style={{ fontSize: '12px', color: '#666', fontWeight: 'bold' }}>発注元</label>
                                 <select
@@ -391,8 +366,8 @@ export default function Home() {
                     </div>
 
                     {/* Filter & Search */}
-                    <div style={{ backgroundColor: '#fff', padding: '15px', borderRadius: '12px', marginBottom: '15px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-                        <div style={{ display: 'flex', gap: '10px', marginBottom: '15px', overflowX: 'auto', paddingBottom: '5px' }}>
+                    <div className="card">
+                        <div style={{ display: 'flex', gap: '8px', marginBottom: '15px', overflowX: 'auto', paddingBottom: '8px', WebkitOverflowScrolling: 'touch' }}>
                             {categories.map(c => (
                                 <button
                                     key={c}
@@ -413,7 +388,7 @@ export default function Home() {
                         </div>
                         <input
                             type="text"
-                            placeholder="品名で絞り込み..."
+                            placeholder="品名や品番で検索..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '15px' }}
@@ -421,14 +396,7 @@ export default function Home() {
                     </div>
 
                     {/* Items List */}
-                    <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-                        gap: '12px',
-                        maxHeight: 'calc(100vh - 350px)',
-                        overflowY: 'auto',
-                        padding: '2px'
-                    }}>
+                    <div className="item-grid">
                         {filteredItems.map(item => {
                             const isRec = recommendedItemIds.includes(item.id);
                             return (
@@ -465,18 +433,20 @@ export default function Home() {
                                         </div>
                                     </div>
                                     <button
+                                        className="btn-add"
                                         onClick={() => addToCart(item)}
                                         style={{
                                             marginTop: '15px',
-                                            padding: '10px',
+                                            padding: '12px',
                                             borderRadius: '8px',
                                             border: 'none',
                                             backgroundColor: '#e8f0fe',
                                             color: '#1a73e8',
                                             fontWeight: 'bold',
-                                            cursor: 'pointer'
+                                            cursor: 'pointer',
+                                            fontSize: '14px'
                                         }}
-                                    >追加する</button>
+                                    >🛒 追加する</button>
                                 </div>
                             );
                         })}
@@ -484,16 +454,15 @@ export default function Home() {
                 </div>
 
                 {/* Right: Cart */}
-                <div style={{ flex: '0 0 320px' }}>
-                    <div style={{
-                        backgroundColor: '#fff',
-                        borderRadius: '16px',
-                        boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                <div className="right-panel">
+                    <div className="card" style={{
                         display: 'flex',
                         flexDirection: 'column',
                         maxHeight: 'calc(100vh - 40px)',
                         position: 'sticky',
-                        top: '10px'
+                        top: '10px',
+                        padding: 0,
+                        overflow: 'hidden'
                     }}>
                         <div style={{ padding: '20px', borderBottom: '1px solid #f0f0f0' }}>
                             <h2 style={{ fontSize: '18px', margin: 0 }}>注文内容 ({cart.length})</h2>
@@ -512,9 +481,9 @@ export default function Home() {
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                             <div style={{ fontSize: '13px', color: '#1a73e8' }}>¥{((item.price ?? 0) * item.quantity).toLocaleString()}</div>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                <button onClick={() => updateQuantity(item.itemId, -1)} style={{ width: '28px', height: '28px', borderRadius: '50%', border: '1px solid #ddd', backgroundColor: '#fff', cursor: 'pointer' }}>-</button>
-                                                <span style={{ minWidth: '20px', textAlign: 'center', fontWeight: 'bold' }}>{item.quantity}</span>
-                                                <button onClick={() => updateQuantity(item.itemId, 1)} style={{ width: '28px', height: '28px', borderRadius: '50%', border: '1px solid #ddd', backgroundColor: '#fff', cursor: 'pointer' }}>+</button>
+                                                <button onClick={() => updateQuantity(item.itemId, -1)} style={{ width: '32px', height: '32px', borderRadius: '50%', border: '1px solid #ddd', backgroundColor: '#fff', cursor: 'pointer' }}>-</button>
+                                                <span style={{ minWidth: '24px', textAlign: 'center', fontWeight: 'bold' }}>{item.quantity}</span>
+                                                <button onClick={() => updateQuantity(item.itemId, 1)} style={{ width: '32px', height: '32px', borderRadius: '50%', border: '1px solid #ddd', backgroundColor: '#fff', cursor: 'pointer' }}>+</button>
                                             </div>
                                         </div>
                                     </div>
@@ -522,7 +491,7 @@ export default function Home() {
                             )}
                         </div>
 
-                        <div style={{ padding: '20px', borderTop: '1px solid #f0f0f0', backgroundColor: '#fff', borderRadius: '0 0 16px 16px' }}>
+                        <div style={{ padding: '20px', borderTop: '1px solid #f0f0f0', backgroundColor: '#fff' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px', fontSize: '20px', fontWeight: 'bold' }}>
                                 <span>合計</span>
                                 <span>¥{totalAmount.toLocaleString()}</span>
@@ -537,70 +506,66 @@ export default function Home() {
 
                             <button
                                 id="submit-order-button"
-                                className="btn"
                                 onClick={handleSubmit}
                                 disabled={cart.length === 0 || !sourceId || !destinationId}
                                 style={{
                                     width: '100%',
-                                    padding: '18px',
+                                    padding: '16px',
                                     borderRadius: '12px',
                                     border: 'none',
-                                    fontSize: '20px',
+                                    fontSize: '16px',
                                     fontWeight: 'bold',
                                     backgroundColor: (cart.length === 0 || !sourceId || !destinationId) ? '#ccc' : '#28a745',
-                                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                                    marginTop: '20px',
-                                    cursor: (cart.length === 0 || !sourceId || !destinationId) ? 'not-allowed' : 'pointer',
-                                    transition: 'all 0.2s'
+                                    color: '#fff',
+                                    cursor: (cart.length === 0 || !sourceId || !destinationId) ? 'not-allowed' : 'pointer'
                                 }}
                             >
-                                {cart.length === 0 ? '品目を選択してください' : '発注を確定して発注書を作成する'}
+                                {cart.length === 0 ? '品目を選択してください' : '発注を確定する'}
                             </button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Mobile View Adjustment (floating sum) */}
-            <div style={{
-                position: 'fixed',
-                bottom: 0,
-                left: 0,
-                right: 0,
-                backgroundColor: '#fff',
-                padding: '15px 20px',
-                boxShadow: '0 -2px 10px rgba(0,0,0,0.1)',
-                display: 'none', // Shown only on mobile via media query in real CSS
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                zIndex: 100
-            }}>
-                <div>
+            {/* Mobile View Adjustment (floating footer) */}
+            <div className="mobile-floating-footer">
+                <div onClick={() => {
+                    const cartPanel = document.querySelector('.right-panel');
+                    if (cartPanel) cartPanel.scrollIntoView({ behavior: 'smooth' });
+                }}>
                     <div style={{ fontSize: '12px', color: '#666' }}>合計 ({cart.length}点)</div>
                     <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#1a73e8' }}>¥{totalAmount.toLocaleString()}</div>
                 </div>
-                <button onClick={handleSubmit} style={{ backgroundColor: '#1a73e8', color: '#fff', padding: '12px 24px', borderRadius: '8px', border: 'none', fontWeight: 'bold' }}>注文</button>
+                <button
+                    onClick={handleSubmit}
+                    disabled={cart.length === 0 || !sourceId || !destinationId}
+                    style={{
+                        backgroundColor: (cart.length === 0 || !sourceId || !destinationId) ? '#ccc' : '#1a73e8',
+                        color: '#fff',
+                        padding: '12px 24px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        fontWeight: 'bold',
+                        fontSize: '16px'
+                    }}
+                >注文確定</button>
             </div>
 
             {/* Debug Footer */}
-            <div style={{ marginTop: '40px', padding: '20px', backgroundColor: '#fdf6e3', border: '1px solid #eee', fontSize: '12px', color: '#666', borderRadius: '8px' }}>
+            <div className="card" style={{ marginTop: '40px', fontSize: '12px', color: '#666', backgroundColor: '#fdf6e3' }}>
                 <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>🔍 診断情報</div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '5px 15px' }}>
                     <span>Domain:</span> <span>{typeof window !== 'undefined' ? window.location.host : 'N/A'}</span>
-                    <span>Sync Status:</span> <span>{localStorage.getItem('master_items') ? '✅ マスタ読み込み済' : '⚠️ 初期データを使用中'}</span>
-                    <span>Price (I0064):</span> <span>{items.find(i => i.id === 'I0064')?.price}円</span>
+                    <span>Sync:</span> <span>{localStorage.getItem('master_items') ? '✅ OK' : '⚠️ Default'}</span>
                 </div>
                 <hr style={{ margin: '10px 0', border: 'none', borderTop: '1px solid #ddd' }} />
                 <div style={{ display: 'flex', gap: '15px' }}>
-                    <button onClick={() => window.location.reload()} style={{ cursor: 'pointer', background: 'none', border: '1px solid #999', padding: '4px 8px', borderRadius: '4px', fontSize: '11px' }}>🔄 強制リロード</button>
+                    <button onClick={() => window.location.reload()} style={{ cursor: 'pointer', background: 'none', border: '1px solid #999', padding: '4px 8px', borderRadius: '4px', fontSize: '11px' }}>🔄 リロード</button>
                     <button onClick={() => {
-                        localStorage.removeItem('master_items');
-                        localStorage.removeItem('master_locations');
-                        localStorage.removeItem('master_suppliers');
+                        localStorage.clear();
                         window.location.reload();
-                    }} style={{ cursor: 'pointer', color: '#d93025', background: 'none', border: '1px solid #d93025', padding: '4px 8px', borderRadius: '4px', fontSize: '11px' }}>🗑️ 保存データを消去してリセット</button>
+                    }} style={{ cursor: 'pointer', color: '#d93025', background: 'none', border: '1px solid #d93025', padding: '4px 8px', borderRadius: '4px', fontSize: '11px' }}>🗑️ リセット</button>
                 </div>
-                <div style={{ marginTop: '10px', fontSize: '10px', color: '#aaa' }}>Build: 2026/02/09-11:30</div>
             </div>
         </div>
     );
