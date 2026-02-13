@@ -233,42 +233,24 @@ export default function Home() {
                 }}>
                     <div style={{ backgroundColor: '#fff', padding: '30px', borderRadius: '16px', maxWidth: '400px', width: '100%', textAlign: 'center', position: 'relative' }}>
                         <button onClick={() => setShowMobileModal(false)} style={{ position: 'absolute', top: '15px', right: '15px', border: 'none', background: 'none', fontSize: '20px', cursor: 'pointer' }}>✕</button>
-                        <h3 style={{ marginBottom: '10px' }}>スマホからアクセス</h3>
+                        <h3 style={{ marginBottom: '10px' }}>スマホで開く</h3>
                         <p style={{ fontSize: '14px', color: '#666', marginBottom: '20px' }}>
-                            QRコードを読み取ってスマホで開けます。
+                            このQRコードを読み取ると、外出先や店内Wi-Fiからでも注文できます。
                         </p>
 
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', justifyContent: 'center' }}>
-                            {/* Local Wi-Fi */}
-                            <div style={{ flex: '1 1 150px', backgroundColor: '#f9f9f9', padding: '15px', borderRadius: '12px' }}>
-                                <div style={{ fontSize: '11px', fontWeight: 'bold', marginBottom: '10px' }}>【店内Wi-Fi用】</div>
-                                {localIp ? (
-                                    <>
-                                        <img
-                                            src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(`http://${localIp}:3001`)}`}
-                                            alt="Local QR"
-                                            style={{ width: '120px', height: '120px', marginBottom: '10px' }}
-                                        />
-                                        <div style={{ fontSize: '10px', color: '#1a73e8', wordBreak: 'break-all' }}>
-                                            http://{localIp}:3001
-                                        </div>
-                                    </>
-                                ) : <p>IP取得中...</p>}
-                            </div>
-
-                            {/* External Access (Tunnel) */}
-                            <div style={{ flex: '1 1 150px', backgroundColor: '#eaf4ff', padding: '15px', borderRadius: '12px', border: '1px solid #cce5ff' }}>
-                                <div style={{ fontSize: '11px', fontWeight: 'bold', marginBottom: '10px', color: '#004085' }}>【外出先・4G用】</div>
-                                <img
-                                    src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(`https://ishida-ordering-app.vercel.app`)}`}
-                                    alt="Production QR"
-                                    style={{ width: '120px', height: '120px', marginBottom: '10px' }}
-                                />
-                                <div style={{ fontSize: '10px', color: '#004085', wordBreak: 'break-all', fontWeight: 'bold' }}>
-                                    ishida-ordering-app.vercel.app
-                                </div>
+                        <div style={{ backgroundColor: '#eaf4ff', padding: '20px', borderRadius: '12px', border: '1px solid #cce5ff' }}>
+                            <img
+                                src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(`https://ishida-ordering-app.vercel.app`)}`}
+                                alt="Production QR"
+                                style={{ width: '250px', height: '250px', maxWidth: '100%', marginBottom: '15px' }}
+                            />
+                            <div style={{ fontSize: '14px', color: '#004085', wordBreak: 'break-all', fontWeight: 'bold' }}>
+                                ishida-ordering-app.vercel.app
                             </div>
                         </div>
+                        <p style={{ fontSize: '12px', color: '#999', marginTop: '20px' }}>
+                            ※ブックマークしておくと次回から簡単に開けます。
+                        </p>
                     </div>
                 </div>
             )}
