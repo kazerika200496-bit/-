@@ -31,6 +31,8 @@ export default function Home() {
     const [showAlert, setShowAlert] = useState<{ message: string, type: 'warning' | 'success' } | null>(null);
     const [showMobileModal, setShowMobileModal] = useState(false);
     const [localIp, setLocalIp] = useState<string | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
 
     useEffect(() => {
         const loadData = () => {
@@ -171,35 +173,45 @@ export default function Home() {
         }).filter(item => item.quantity > 0));
     };
 
-    const handleSubmit = () => {
-        if (!sourceId || !destinationId || cart.length === 0) {
+    const handleSubmit = async () => {
+        if (!sourceId || !destinationId || cart.length === 0 || isSubmitting) {
             alert('必要事項をすべて入力してください。');
             return;
         }
 
-        const newId = `ORD-${Date.now()}`;
-        const newOrder: Order = {
-            id: newId,
-            date: new Date(orderDate).toISOString(),
-            sourceId,
-            destinationId,
-            items: cart,
-            totalAmount,
-            status: 'pending',
-            remarks
-        };
+        setIsSubmitting(true);
 
-        const updatedOrders = [newOrder, ...localOrders];
-        setLocalOrders(updatedOrders);
-        localStorage.setItem('local_orders', JSON.stringify(updatedOrders));
-        setLastSubmittedId(newId);
-        setCart([]);
-        setRemarks('');
-        setShowAlert({ message: '発注が正常に完了しました。', type: 'success' });
+        try {
+            // サーバー処理をシミュレート
+            await new Promise(resolve => setTimeout(resolve, 800));
 
-        // 自動的に最上部へスクロールして通知を見せる
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+            const newId = `ORD-${Date.now()}`;
+            const newOrder: Order = {
+                id: newId,
+                date: new Date(orderDate).toISOString(),
+                sourceId,
+                destinationId,
+                items: cart,
+                totalAmount,
+                status: 'pending',
+                remarks
+            };
+
+            const updatedOrders = [newOrder, ...localOrders];
+            setLocalOrders(updatedOrders);
+            localStorage.setItem('local_orders', JSON.stringify(updatedOrders));
+            setLastSubmittedId(newId);
+            setCart([]);
+            setRemarks('');
+            setShowAlert({ message: '発注が正常に完了しました。', type: 'success' });
+
+            // 自動的に最上部へスクロールして通知を見せる
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } finally {
+            setIsSubmitting(false);
+        }
     };
+
 
     if (!isMounted) return <div style={{ padding: '50px', textAlign: 'center' }}>読み込み中...</div>;
 
@@ -292,15 +304,17 @@ export default function Home() {
                                 onClick={() => setShowAlert(null)}
                                 style={{
                                     backgroundColor: '#fff',
-                                    color: '#666',
+                                    color: '#28a745',
                                     padding: '12px 24px',
                                     borderRadius: '8px',
-                                    border: '1px solid #ddd',
-                                    cursor: 'pointer'
+                                    border: '2px solid #28a745',
+                                    cursor: 'pointer',
+                                    fontWeight: 'bold'
                                 }}
                             >
-                                閉じる
+                                ✅ 発注完了（画面を閉じる）
                             </button>
+
                         </div>
                     )}
                 </div>
@@ -486,24 +500,25 @@ export default function Home() {
                                 style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', height: '60px', marginBottom: '15px', fontSize: '13px' }}
                             />
 
-                            <button
-                                id="submit-order-button"
-                                onClick={handleSubmit}
-                                disabled={cart.length === 0 || !sourceId || !destinationId}
-                                style={{
-                                    width: '100%',
-                                    padding: '16px',
-                                    borderRadius: '12px',
-                                    border: 'none',
-                                    fontSize: '16px',
-                                    fontWeight: 'bold',
-                                    backgroundColor: (cart.length === 0 || !sourceId || !destinationId) ? '#ccc' : '#28a745',
-                                    color: '#fff',
-                                    cursor: (cart.length === 0 || !sourceId || !destinationId) ? 'not-allowed' : 'pointer'
-                                }}
-                            >
-                                {cart.length === 0 ? '品目を選択してください' : '発注を確定する'}
-                            </button>
+                                <button
+                                    id="submit-order-button"
+                                    onClick={handleSubmit}
+                                    disabled={cart.length === 0 || !sourceId || !destinationId || isSubmitting}
+                                    style={{
+                                        width: '100%',
+                                        padding: '16px',
+                                        borderRadius: '12px',
+                                        border: 'none',
+                                        fontSize: '16px',
+                                        fontWeight: 'bold',
+                                        backgroundColor: (cart.length === 0 || !sourceId || !destinationId || isSubmitting) ? '#ccc' : '#28a745',
+                                        color: '#fff',
+                                        cursor: (cart.length === 0 || !sourceId || !destinationId || isSubmitting) ? 'not-allowed' : 'pointer'
+                                    }}
+                                >
+                                    {isSubmitting ? '送信中...' : (cart.length === 0 ? '品目を選択してください' : '発注を確定する')}
+                                </button>
+
                         </div>
                     </div>
                 </div>
@@ -520,9 +535,9 @@ export default function Home() {
                 </div>
                 <button
                     onClick={handleSubmit}
-                    disabled={cart.length === 0 || !sourceId || !destinationId}
+                    disabled={cart.length === 0 || !sourceId || !destinationId || isSubmitting}
                     style={{
-                        backgroundColor: (cart.length === 0 || !sourceId || !destinationId) ? '#ccc' : '#1a73e8',
+                        backgroundColor: (cart.length === 0 || !sourceId || !destinationId || isSubmitting) ? '#ccc' : '#1a73e8',
                         color: '#fff',
                         padding: '12px 24px',
                         borderRadius: '8px',
@@ -530,7 +545,10 @@ export default function Home() {
                         fontWeight: 'bold',
                         fontSize: '16px'
                     }}
-                >注文確定</button>
+                >
+                    {isSubmitting ? '送信中...' : '注文確定'}
+                </button>
+
             </div>
 
             {/* Debug Footer */}

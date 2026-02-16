@@ -83,10 +83,12 @@ export default function HistoryPage() {
                                                 fontSize: '0.8rem',
                                                 padding: '6px 12px',
                                                 backgroundColor: '#1a73e8',
+                                                color: '#fff',
                                                 textDecoration: 'none',
                                                 display: 'inline-block',
                                                 borderRadius: '6px'
                                             }}
+
                                         >
                                             📄 発注書を表示・再発行
                                         </Link>
