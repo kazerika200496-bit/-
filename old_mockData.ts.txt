@@ -114,7 +114,6 @@ export const ITEMS: Item[] = [
     { id: 'I0068', category: '書類・伝票', name: '領収書', unit: '冊', price: 300, defaultSupplierId: 'SUP005' },
 ];
 
-
 export const MOCK_ORDERS: Order[] = [
     {
         id: 'ORDER-20231201-001',

@@ -24,6 +24,13 @@ export default function HistoryPage() {
         }
     }, []);
 
+    const completeOrder = (id: string) => {
+        const updated = orders.map(o => o.id === id ? { ...o, status: 'completed' as const } : o);
+        setOrders(updated);
+        localStorage.setItem('local_orders', JSON.stringify(updated));
+    };
+
+
     const getLocationName = (id: string) => locations.find(l => l.id === id)?.name || id;
     const getSupplierName = (id: string) => suppliers.find(s => s.id === id)?.name || id;
 
@@ -92,6 +99,25 @@ export default function HistoryPage() {
                                         >
                                             📄 発注書を表示・再発行
                                         </Link>
+                                        {order.status !== 'completed' && (
+                                            <button
+                                                onClick={() => completeOrder(order.id)}
+                                                style={{
+                                                    fontSize: '0.8rem',
+                                                    padding: '6px 12px',
+                                                    backgroundColor: '#28a745',
+                                                    color: '#fff',
+                                                    border: 'none',
+                                                    borderRadius: '6px',
+                                                    cursor: 'pointer',
+                                                    marginLeft: '8px',
+                                                    fontWeight: 'bold'
+                                                }}
+                                            >
+                                                ✅ 完了にする
+                                            </button>
+                                        )}
+
                                     </td>
                                 </tr>
                             ))}
