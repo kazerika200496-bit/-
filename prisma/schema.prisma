@@ -1,0 +1,76 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Item {
+  id                String   @id
+  category          String
+  name              String
+  unit              String
+  price             Float?
+  imageUrl          String?
+  defaultSupplierId String?
+  orderLines        VendorOrderLine[]
+}
+
+model Location {
+  id                String   @id
+  name              String
+  type              String   // '店舗' | '工場'
+  defaultSupplierId String?
+}
+
+model Supplier {
+  id                String   @id
+  name              String
+  type              String   // '工場' | '業者'
+  officialName      String?
+  zip               String?
+  address           String?
+  tel               String?
+  fax               String?
+  method            String?  // '訪問' | 'FAX' | 'TEL'
+  
+  // 業者マスタ拡張
+  deliveryDayOfWeek String?  // 例: '火'
+  cutoffDayOfWeek   String?  // 例: '月'
+  cutoffTime        String?  // 例: '17:00'
+  orders            VendorOrder[]
+}
+
+model VendorOrder {
+  id            String            @id
+  vendorId      String
+  vendor        Supplier          @relation(fields: [vendorId], references: [id])
+  periodStart   DateTime
+  periodEnd     DateTime
+  status        String            @default("DRAFT") // 'DRAFT' | 'CONFIRMED' | 'SENT'
+  confirmedAt   DateTime?
+  confirmedBy   String?
+  lines         VendorOrderLine[]
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+}
+
+model VendorOrderLine {
+  id            Int         @id @default(autoincrement())
+  orderId       String
+  order         VendorOrder @relation(fields: [orderId], references: [id])
+  itemId        String
+  item          Item        @relation(fields: [itemId], references: [id])
+  itemName      String      // デナリゼーション用 (品目名が変わっても注文時は変わらないように)
+  qty           Float
+  unit          String
+  price         Float
+  note          String?
+  createdBy     String?
+  updatedAt     DateTime    @updatedAt
+}

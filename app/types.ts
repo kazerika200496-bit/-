@@ -13,13 +13,15 @@ export interface Supplier {
     name: string;
     type: SupplierType;
     officialName?: string;
-    contactInfo?: {
-        zip?: string;
-        address?: string;
-        tel?: string;
-        fax?: string;
-        method?: string;
-    };
+    zip?: string;
+    address?: string;
+    tel?: string;
+    fax?: string;
+    method?: string;
+    // 業者マスタ拡張
+    deliveryDayOfWeek?: string;
+    cutoffDayOfWeek?: string;
+    cutoffTime?: string;
 }
 
 export interface Item {
@@ -28,16 +30,17 @@ export interface Item {
     name: string;
     unit: string;
     displayName?: string;
-    price?: number; // Added price
-    defaultSupplierId?: string; // Hint for which supplier usually carries this
+    price?: number;
+    imageUrl?: string; // サムネイル
+    defaultSupplierId?: string;
 }
 
 export interface OrderItem {
     itemId: string;
     quantity: number;
     itemName: string;
-    unit: string; // Snapshot of unit at time of order
-    price: number; // Snapshot of price at time of order
+    unit: string;
+    price: number;
 }
 
 export interface Order {
@@ -46,8 +49,38 @@ export interface Order {
     sourceId: string;
     destinationId: string;
     items: OrderItem[];
-    totalAmount: number; // Added total
+    totalAmount: number;
     status: 'pending' | 'evaluated' | 'approved' | 'shipping' | 'completed';
     desiredDeliveryDate?: string;
     remarks?: string;
+}
+
+export type VendorOrderStatus = 'DRAFT' | 'CONFIRMED' | 'SENT';
+
+export interface VendorOrderLine {
+    id: number;
+    orderId: string;
+    itemId: string;
+    itemName: string;
+    qty: number;
+    unit: string;
+    price: number;
+    note?: string;
+    createdBy?: string;
+    updatedAt: string;
+    item?: Item;
+}
+
+export interface VendorOrder {
+    id: string;
+    vendorId: string;
+    periodStart: string;
+    periodEnd: string;
+    status: VendorOrderStatus;
+    confirmedAt?: string;
+    confirmedBy?: string;
+    createdAt: string;
+    updatedAt: string;
+    lines: VendorOrderLine[];
+    vendor: Supplier;
 }

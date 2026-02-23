@@ -35,20 +35,42 @@ export default function Home() {
 
 
     useEffect(() => {
-        const loadData = () => {
-            const savedItems = localStorage.getItem('master_items');
-            const savedLocs = localStorage.getItem('master_locations');
-            const savedSups = localStorage.getItem('master_suppliers');
-            const savedOrders = localStorage.getItem('local_orders');
+        const loadFromApi = async () => {
+            try {
+                const res = await fetch('/api/master');
+                const data = await res.json();
+                if (data.items) {
+                    setItems(data.items);
+                    localStorage.setItem('master_items', JSON.stringify(data.items));
+                }
+                if (data.locations) {
+                    setLocations(data.locations);
+                    localStorage.setItem('master_locations', JSON.stringify(data.locations));
+                }
+                if (data.suppliers) {
+                    setSuppliers(data.suppliers);
+                    localStorage.setItem('master_suppliers', JSON.stringify(data.suppliers));
+                }
+            } catch (err) {
+                console.error('Failed to load from API, falling back to local:', err);
+                const savedItems = localStorage.getItem('master_items');
+                const savedLocs = localStorage.getItem('master_locations');
+                const savedSups = localStorage.getItem('master_suppliers');
+                if (savedItems) setItems(JSON.parse(savedItems));
+                if (savedLocs) setLocations(JSON.parse(savedLocs));
+                if (savedSups) setSuppliers(JSON.parse(savedSups));
+            }
+        };
 
-            if (savedItems) setItems(JSON.parse(savedItems));
-            if (savedLocs) setLocations(JSON.parse(savedLocs));
-            if (savedSups) setSuppliers(JSON.parse(savedSups));
+        const loadLocalOrders = () => {
+            const savedOrders = localStorage.getItem('local_orders');
             if (savedOrders) setLocalOrders(JSON.parse(savedOrders));
         };
 
-        loadData();
+        loadFromApi();
+        loadLocalOrders();
         setIsMounted(true);
+
 
         fetch('/api/network-info')
             .then(res => res.json())
@@ -61,18 +83,21 @@ export default function Home() {
 
         // Sync data across tabs and on focus
         const handleStorageChange = (e: StorageEvent) => {
-            if (['master_items', 'master_locations', 'master_suppliers', 'local_orders'].includes(e.key || '')) {
-                loadData();
+            if (['master_items', 'master_locations', 'master_suppliers'].includes(e.key || '')) {
+                loadFromApi();
+            } else if (e.key === 'local_orders') {
+                loadLocalOrders();
             }
         };
 
         window.addEventListener('storage', handleStorageChange);
-        window.addEventListener('focus', loadData);
+        window.addEventListener('focus', loadFromApi);
 
         return () => {
             window.removeEventListener('storage', handleStorageChange);
-            window.removeEventListener('focus', loadData);
+            window.removeEventListener('focus', loadFromApi);
         };
+
     }, []);
 
     // --- Derived Data ---
@@ -182,10 +207,28 @@ export default function Home() {
         setIsSubmitting(true);
 
         try {
-            // サーバー処理をシミュレート
-            await new Promise(resolve => setTimeout(resolve, 800));
+            // サーバー処理 (業者向け consolidated list)
+            const dest = availableDestinations.find(d => d.id === destinationId);
+            if (dest && (dest as any).type === '業者') {
+                for (const item of cart) {
+                    await fetch('/api/vendor-orders', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            vendorId: destinationId,
+                            itemId: item.itemId,
+                            itemName: item.itemName,
+                            qty: item.quantity,
+                            unit: item.unit,
+                            price: item.price,
+                            createdBy: sourceId // 拠点名を制作者とする
+                        })
+                    });
+                }
+            }
 
             const newId = `ORD-${Date.now()}`;
+
             const newOrder: Order = {
                 id: newId,
                 date: new Date(orderDate).toISOString(),
@@ -420,14 +463,35 @@ export default function Home() {
                                             fontWeight: 'bold'
                                         }}>おすすめ</div>
                                     )}
-                                    <div>
-                                        <div style={{ fontSize: '11px', color: '#999' }}>{item.category} / {item.id}</div>
-                                        <div style={{ fontSize: '15px', fontWeight: 'bold', margin: '5px 0' }}>{item.name}</div>
-                                        <div style={{ fontSize: '14px', color: '#1a73e8', fontWeight: 'bold' }}>
-                                            ¥{(item.price ?? 0).toLocaleString()}
-                                            <span style={{ fontSize: '12px', color: '#666', fontWeight: 'normal', marginLeft: '4px' }}>/ {item.unit}</span>
+                                    <div style={{ display: 'flex', gap: '12px' }}>
+                                        {/* Thumbnail Implementation */}
+                                        <div style={{
+                                            width: '50px',
+                                            height: '50px',
+                                            backgroundColor: '#f0f0f0',
+                                            borderRadius: '6px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            overflow: 'hidden',
+                                            flexShrink: 0
+                                        }}>
+                                            {item.imageUrl ? (
+                                                <img src={item.imageUrl} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            ) : (
+                                                <span style={{ fontSize: '20px', color: '#ccc' }}>🖼️</span>
+                                            )}
+                                        </div>
+                                        <div>
+                                            <div style={{ fontSize: '11px', color: '#999' }}>{item.category} / {item.id}</div>
+                                            <div style={{ fontSize: '15px', fontWeight: 'bold', margin: '2px 0' }}>{item.name}</div>
+                                            <div style={{ fontSize: '14px', color: '#1a73e8', fontWeight: 'bold' }}>
+                                                ¥{(item.price ?? 0).toLocaleString()}
+                                                <span style={{ fontSize: '12px', color: '#666', fontWeight: 'normal', marginLeft: '4px' }}>/ {item.unit}</span>
+                                            </div>
                                         </div>
                                     </div>
+
                                     <button
                                         className="btn-add"
                                         onClick={() => addToCart(item)}
@@ -448,6 +512,38 @@ export default function Home() {
                         })}
                     </div>
                 </div>
+
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center', padding: '10px 0' }}>
+                    <Link href="/vendor-orders" style={{
+                        padding: '10px 16px',
+                        backgroundColor: '#e8f0fe',
+                        color: '#1a73e8',
+                        textDecoration: 'none',
+                        borderRadius: '8px',
+                        fontWeight: 'bold',
+                        fontSize: '14px',
+                        border: '1px solid #1a73e8'
+                    }}>📦 業者別注文リスト (確定/印刷)</Link>
+                    <Link href="/history" style={{
+                        padding: '10px 16px',
+                        backgroundColor: '#fff',
+                        color: '#666',
+                        textDecoration: 'none',
+                        borderRadius: '8px',
+                        border: '1px solid #ddd',
+                        fontSize: '14px'
+                    }}>📜 履歴</Link>
+                    <Link href="/admin" style={{
+                        padding: '10px 16px',
+                        backgroundColor: '#fff',
+                        color: '#666',
+                        textDecoration: 'none',
+                        borderRadius: '8px',
+                        border: '1px solid #ddd',
+                        fontSize: '14px'
+                    }}>⚙️ マスタ</Link>
+                </div>
+
 
                 {/* Right: Cart */}
                 <div className="right-panel">
@@ -500,24 +596,24 @@ export default function Home() {
                                 style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', height: '60px', marginBottom: '15px', fontSize: '13px' }}
                             />
 
-                                <button
-                                    id="submit-order-button"
-                                    onClick={handleSubmit}
-                                    disabled={cart.length === 0 || !sourceId || !destinationId || isSubmitting}
-                                    style={{
-                                        width: '100%',
-                                        padding: '16px',
-                                        borderRadius: '12px',
-                                        border: 'none',
-                                        fontSize: '16px',
-                                        fontWeight: 'bold',
-                                        backgroundColor: (cart.length === 0 || !sourceId || !destinationId || isSubmitting) ? '#ccc' : '#28a745',
-                                        color: '#fff',
-                                        cursor: (cart.length === 0 || !sourceId || !destinationId || isSubmitting) ? 'not-allowed' : 'pointer'
-                                    }}
-                                >
-                                    {isSubmitting ? '送信中...' : (cart.length === 0 ? '品目を選択してください' : '発注を確定する')}
-                                </button>
+                            <button
+                                id="submit-order-button"
+                                onClick={handleSubmit}
+                                disabled={cart.length === 0 || !sourceId || !destinationId || isSubmitting}
+                                style={{
+                                    width: '100%',
+                                    padding: '16px',
+                                    borderRadius: '12px',
+                                    border: 'none',
+                                    fontSize: '16px',
+                                    fontWeight: 'bold',
+                                    backgroundColor: (cart.length === 0 || !sourceId || !destinationId || isSubmitting) ? '#ccc' : '#28a745',
+                                    color: '#fff',
+                                    cursor: (cart.length === 0 || !sourceId || !destinationId || isSubmitting) ? 'not-allowed' : 'pointer'
+                                }}
+                            >
+                                {isSubmitting ? '送信中...' : (cart.length === 0 ? '品目を選択してください' : '発注を確定する')}
+                            </button>
 
                         </div>
                     </div>
