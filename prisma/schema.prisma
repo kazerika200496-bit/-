@@ -52,7 +52,10 @@ model VendorOrder {
   vendor        Supplier          @relation(fields: [vendorId], references: [id])
   periodStart   DateTime
   periodEnd     DateTime
+  deliveryDate  DateTime?         // 納品予定日
+  cutoffAt      DateTime?         // 締切日時
   status        String            @default("DRAFT") // 'DRAFT' | 'CONFIRMED' | 'SENT'
+  isLocked      Boolean           @default(false)   // 確定後のロック用
   confirmedAt   DateTime?
   confirmedBy   String?
   lines         VendorOrderLine[]
@@ -71,6 +74,9 @@ model VendorOrderLine {
   unit          String
   price         Float
   note          String?
-  createdBy     String?
+  createdBy     String?     // 後方互換性用
+  requestedBy   String?     // 入力した人
+  locationId    String?     // 拠点ID
+  addedAt       DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 }

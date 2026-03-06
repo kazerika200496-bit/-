@@ -131,8 +131,16 @@ export default function AdminPage() {
                                     <tr key={item.id} style={{ borderBottom: '1px solid #f0f0f0' }}>
                                         <td style={{ padding: '8px' }}>{item.id}</td>
                                         <td style={{ padding: '8px' }}>
-                                            <input value={item.imageUrl || ''} placeholder="https://..." onChange={e => updateItem(item.id, 'imageUrl', e.target.value)} style={{ width: '150px', padding: '5px', border: '1px solid #eee' }} />
-                                            {item.imageUrl && <img src={item.imageUrl} style={{ width: '30px', height: '30px', marginLeft: '5px', verticalAlign: 'middle', borderRadius: '4px' }} alt="" />}
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <div style={{ width: '40px', height: '40px', backgroundColor: '#f0f0f0', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
+                                                    {item.imageUrl ? (
+                                                        <img src={item.imageUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+                                                    ) : (
+                                                        <span style={{ fontSize: '18px', color: '#ccc' }}>🖼️</span>
+                                                    )}
+                                                </div>
+                                                <input value={item.imageUrl || ''} placeholder="https://..." onChange={e => updateItem(item.id, 'imageUrl', e.target.value)} style={{ flex: 1, padding: '5px', border: '1px solid #eee', fontSize: '12px' }} />
+                                            </div>
                                         </td>
                                         <td style={{ padding: '8px' }}>
                                             <input value={item.name} onChange={e => updateItem(item.id, 'name', e.target.value)} style={{ width: '100%', padding: '5px', border: '1px solid #eee' }} />

@@ -32,6 +32,7 @@ export default function Home() {
     const [showMobileModal, setShowMobileModal] = useState(false);
     const [localIp, setLocalIp] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [requesterName, setRequesterName] = useState('');
 
 
     useEffect(() => {
@@ -204,14 +205,20 @@ export default function Home() {
             return;
         }
 
+        if (!requesterName.trim()) {
+            alert('発注者名を入力してください。');
+            return;
+        }
+
         setIsSubmitting(true);
+        let vendorOrderId: string | null = null;
 
         try {
             // サーバー処理 (業者向け consolidated list)
             const dest = availableDestinations.find(d => d.id === destinationId);
             if (dest && (dest as any).type === '業者') {
                 for (const item of cart) {
-                    await fetch('/api/vendor-orders', {
+                    const res = await fetch('/api/vendor-orders', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -221,16 +228,23 @@ export default function Home() {
                             qty: item.quantity,
                             unit: item.unit,
                             price: item.price,
-                            createdBy: sourceId // 拠点名を制作者とする
+                            requestedBy: requesterName,
+                            locationId: sourceId
                         })
                     });
+                    const data = await res.json();
+                    if (data.orderId) {
+                        vendorOrderId = data.orderId; // VORD-... を取得
+                    }
                 }
             }
 
-            const newId = `ORD-${Date.now()}`;
+            const localOrderId = `ORD-${Date.now()}`;
+            // 業者発注の場合はサーバー側の注文ID(VORD-)、それ以外はローカル(ORD-)を使用
+            const finalId = vendorOrderId || localOrderId;
 
             const newOrder: Order = {
-                id: newId,
+                id: finalId,
                 date: new Date(orderDate).toISOString(),
                 sourceId,
                 destinationId,
@@ -243,7 +257,7 @@ export default function Home() {
             const updatedOrders = [newOrder, ...localOrders];
             setLocalOrders(updatedOrders);
             localStorage.setItem('local_orders', JSON.stringify(updatedOrders));
-            setLastSubmittedId(newId);
+            setLastSubmittedId(finalId);
             setCart([]);
             setRemarks('');
             setShowAlert({ message: '発注が正常に完了しました。', type: 'success' });
@@ -264,100 +278,68 @@ export default function Home() {
             <header>
                 <div className="header-title">いしだクリーニング 資材発注</div>
                 <nav>
+                    <div className="header-requester">
+                        <span className="header-requester-label">👤 発注者:</span>
+                        <input
+                            type="text"
+                            placeholder="名前"
+                            className="header-requester-input"
+                            value={requesterName}
+                            onChange={(e) => setRequesterName(e.target.value)}
+                        />
+                    </div>
                     <button
                         onClick={() => setShowMobileModal(true)}
-                        style={{ background: '#ff9800', border: 'none', color: '#fff', padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold' }}
+                        className="btn-mobile-only"
                     >📱 スマホ</button>
-                    <Link href="/history" style={{
-                        color: '#fff',
-                        textDecoration: 'none',
-                        backgroundColor: 'rgba(255,255,255,0.2)',
-                        padding: '6px 14px',
-                        borderRadius: '6px'
-                    }}>📜 履歴</Link>
-                    <Link href="/admin" style={{ color: '#fff', textDecoration: 'none' }}>⚙️ マスタ</Link>
+                    <Link href="/vendor-orders" className="nav-link-important">📦 業者発注一覧</Link>
+                    <Link href="/history" className="nav-link">📜 履歴</Link>
+                    <Link href="/admin" className="nav-link">⚙️ マスタ</Link>
                 </nav>
             </header>
 
             {/* Mobile QR Modal */}
             {showMobileModal && (
-                <div style={{
-                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-                    backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 1000,
-                    display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px'
-                }}>
-                    <div style={{ backgroundColor: '#fff', padding: '30px', borderRadius: '16px', maxWidth: '400px', width: '100%', textAlign: 'center', position: 'relative' }}>
-                        <button onClick={() => setShowMobileModal(false)} style={{ position: 'absolute', top: '15px', right: '15px', border: 'none', background: 'none', fontSize: '20px', cursor: 'pointer' }}>✕</button>
-                        <h3 style={{ marginBottom: '10px' }}>スマホで開く</h3>
-                        <p style={{ fontSize: '14px', color: '#666', marginBottom: '20px' }}>
-                            このQRコードを読み取ると、外出先や店内Wi-Fiからでも注文できます。
-                        </p>
+                <div className="modal-overlay">
+                    <div className="modal-content">
+                        <button onClick={() => setShowMobileModal(false)} className="modal-close">✕</button>
+                        <h3>スマホで開く</h3>
+                        <p>店舗Wi-Fiや外出先からも注文できます。</p>
 
-                        <div style={{ backgroundColor: '#eaf4ff', padding: '20px', borderRadius: '12px', border: '1px solid #cce5ff' }}>
+                        <div className="qr-box">
                             <img
                                 src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(`https://ishida-ordering-app.vercel.app`)}`}
                                 alt="Production QR"
-                                style={{ width: '250px', height: '250px', maxWidth: '100%', marginBottom: '15px' }}
+                                className="qr-image"
                             />
-                            <div style={{ fontSize: '14px', color: '#004085', wordBreak: 'break-all', fontWeight: 'bold' }}>
-                                ishida-ordering-app.vercel.app
-                            </div>
+                            <div className="qr-url">ishida-ordering-app.vercel.app</div>
                         </div>
-                        <p style={{ fontSize: '12px', color: '#999', marginTop: '20px' }}>
-                            ※ブックマークしておくと次回から簡単に開けます。
-                        </p>
                     </div>
                 </div>
             )}
 
             {showAlert && (
-                <div style={{
-                    padding: '20px',
-                    backgroundColor: showAlert.type === 'success' ? '#e6fffa' : '#fff5f5',
-                    color: showAlert.type === 'success' ? '#234e52' : '#c53030',
-                    borderRadius: '12px',
-                    marginBottom: '20px',
-                    border: showAlert.type === 'success' ? '2px solid #38b2ac' : '2px solid #fc8181',
-                    boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '15px',
-                    alignItems: 'center',
-                    textAlign: 'center'
-                }}>
-                    <span style={{ fontSize: '18px', fontWeight: 'bold' }}>{showAlert.message}</span>
+                <div className={`alert alert-${showAlert.type}`}>
+                    <span className="alert-message">{showAlert.message}</span>
                     {lastSubmittedId && showAlert.type === 'success' && (
-                        <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', justifyContent: 'center' }}>
-                            <Link
-                                href={`/printable-order/${lastSubmittedId}`}
-                                style={{
-                                    backgroundColor: '#1a73e8',
-                                    color: '#fff',
-                                    padding: '12px 24px',
-                                    borderRadius: '8px',
-                                    textDecoration: 'none',
-                                    fontWeight: 'bold',
-                                    fontSize: '16px',
-                                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                                }}
-                            >
-                                🖨️ 発注書を印刷
+                        <div className="alert-actions">
+                            <Link href="/vendor-orders" className="btn-alert btn-primary">
+                                📦 業者向け注文リストを確認
                             </Link>
+                            {lastSubmittedId.startsWith('VORD-') && (
+                                <Link
+                                    href={`/printable-order/${lastSubmittedId}`}
+                                    className="btn-alert btn-secondary"
+                                >
+                                    🖨️ 今回の発注書を印刷
+                                </Link>
+                            )}
                             <button
                                 onClick={() => setShowAlert(null)}
-                                style={{
-                                    backgroundColor: '#fff',
-                                    color: '#28a745',
-                                    padding: '12px 24px',
-                                    borderRadius: '8px',
-                                    border: '2px solid #28a745',
-                                    cursor: 'pointer',
-                                    fontWeight: 'bold'
-                                }}
+                                className="btn-alert btn-outline"
                             >
-                                ✅ 発注完了（画面を閉じる）
+                                ✅ 閉じる
                             </button>
-
                         </div>
                     )}
                 </div>
@@ -466,25 +448,29 @@ export default function Home() {
                                     <div style={{ display: 'flex', gap: '12px' }}>
                                         {/* Thumbnail Implementation */}
                                         <div style={{
-                                            width: '50px',
-                                            height: '50px',
-                                            backgroundColor: '#f0f0f0',
-                                            borderRadius: '6px',
+                                            width: '70px',
+                                            height: '70px',
+                                            backgroundColor: '#f8f9fa',
+                                            borderRadius: '8px',
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'center',
                                             overflow: 'hidden',
-                                            flexShrink: 0
+                                            flexShrink: 0,
+                                            border: '1px solid #eee'
                                         }}>
                                             {item.imageUrl ? (
                                                 <img src={item.imageUrl} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                             ) : (
-                                                <span style={{ fontSize: '20px', color: '#ccc' }}>🖼️</span>
+                                                <div style={{ textAlign: 'center' }}>
+                                                    <span style={{ fontSize: '20px', color: '#ccc', display: 'block' }}>🖼️</span>
+                                                    <span style={{ fontSize: '9px', color: '#999' }}>画像なし</span>
+                                                </div>
                                             )}
                                         </div>
-                                        <div>
+                                        <div style={{ flex: 1 }}>
                                             <div style={{ fontSize: '11px', color: '#999' }}>{item.category} / {item.id}</div>
-                                            <div style={{ fontSize: '15px', fontWeight: 'bold', margin: '2px 0' }}>{item.name}</div>
+                                            <div style={{ fontSize: '15px', fontWeight: 'bold', margin: '2px 0', lineHeight: '1.2' }}>{item.name}</div>
                                             <div style={{ fontSize: '14px', color: '#1a73e8', fontWeight: 'bold' }}>
                                                 ¥{(item.price ?? 0).toLocaleString()}
                                                 <span style={{ fontSize: '12px', color: '#666', fontWeight: 'normal', marginLeft: '4px' }}>/ {item.unit}</span>

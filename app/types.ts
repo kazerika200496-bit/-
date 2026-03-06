@@ -67,6 +67,9 @@ export interface VendorOrderLine {
     price: number;
     note?: string;
     createdBy?: string;
+    requestedBy?: string;
+    locationId?: string;
+    addedAt: string;
     updatedAt: string;
     item?: Item;
 }
@@ -76,7 +79,10 @@ export interface VendorOrder {
     vendorId: string;
     periodStart: string;
     periodEnd: string;
+    deliveryDate?: string;
+    cutoffAt?: string;
     status: VendorOrderStatus;
+    isLocked: boolean;
     confirmedAt?: string;
     confirmedBy?: string;
     createdAt: string;

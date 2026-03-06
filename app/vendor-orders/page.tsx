@@ -11,9 +11,9 @@ export default function VendorOrdersPage() {
     const [selectedVendorId, setSelectedVendorId] = useState<string>('');
     const [isAdmin, setIsAdmin] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    const [viewMode, setViewMode] = useState<Record<string, 'consolidated' | 'breakdown'>>({});
 
     useEffect(() => {
-        // 管理者モードの簡易設定 (LocalStorageまたはクエリパラメータ)
         const adminStatus = localStorage.getItem('is_admin') === 'true' ||
             new URLSearchParams(window.location.search).get('admin') === '1';
         setIsAdmin(adminStatus);
@@ -30,10 +30,6 @@ export default function VendorOrdersPage() {
                 setOrders(ordersData);
                 setSuppliers(masterData.suppliers.filter((s: Supplier) => s.type === '業者'));
                 setItems(masterData.items);
-
-                if (masterData.suppliers.length > 0) {
-                    setSelectedVendorId(masterData.suppliers.find((s: Supplier) => s.type === '業者')?.id || '');
-                }
             } catch (err) {
                 console.error('Failed to fetch data:', err);
             } finally {
@@ -47,17 +43,13 @@ export default function VendorOrdersPage() {
         return orders.filter(o => !selectedVendorId || o.vendorId === selectedVendorId);
     }, [orders, selectedVendorId]);
 
-    const activeOrder = useMemo(() => {
-        return filteredOrders.find(o => o.status === 'DRAFT');
-    }, [filteredOrders]);
-
-    const handleUpdateStatus = async (orderId: string, newStatus: string) => {
+    const handleUpdateStatus = async (orderId: string, newStatus: string, isLocked: boolean) => {
         if (!isAdmin) return;
         try {
             const res = await fetch('/api/vendor-orders', {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: orderId, status: newStatus, confirmedBy: isAdmin ? '管理者' : '不明' })
+                body: JSON.stringify({ id: orderId, status: newStatus, isLocked, confirmedBy: '管理者' })
             });
             if (res.ok) {
                 const updated = await res.json();
@@ -68,161 +60,320 @@ export default function VendorOrdersPage() {
         }
     };
 
-    const handlePrint = () => {
-        window.print();
+    const handleUpdateLine = async (orderId: string, lineId: number, qty: number) => {
+        if (qty <= 0) {
+            if (!confirm('明細を削除しますか？')) return;
+            handleDeleteLine(orderId, lineId);
+            return;
+        }
+        try {
+            const res = await fetch(`/api/vendor-orders/lines/${lineId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ qty })
+            });
+            if (res.ok) {
+                const updatedLine = await res.json();
+                setOrders(orders.map(o => {
+                    if (o.id === orderId) {
+                        return { ...o, lines: o.lines.map(l => l.id === lineId ? { ...l, ...updatedLine } : l) };
+                    }
+                    return o;
+                }));
+            }
+        } catch (err) {
+            alert('更新に失敗しました');
+        }
+    };
+
+    const handleDeleteLine = async (orderId: string, lineId: number) => {
+        try {
+            const res = await fetch(`/api/vendor-orders/lines/${lineId}`, {
+                method: 'DELETE'
+            });
+            if (res.ok) {
+                setOrders(orders.map(o => {
+                    if (o.id === orderId) {
+                        return { ...o, lines: o.lines.filter(l => l.id !== lineId) };
+                    }
+                    return o;
+                }));
+            }
+        } catch (err) {
+            alert('削除に失敗しました');
+        }
+    };
+
+    // 締切タイマー計算
+    const getDeadlineInfo = (cutoffAtStr?: string) => {
+        if (!cutoffAtStr) return null;
+        const cutoffAt = new Date(cutoffAtStr);
+        const now = new Date();
+        const diff = cutoffAt.getTime() - now.getTime();
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+        if (diff < 0) return { text: '締切済', color: '#d93025', isUrgent: false };
+        if (hours < 24) return { text: `残り ${hours}時間${mins}分`, color: '#d93025', isUrgent: true };
+        return { text: `残り ${Math.floor(hours / 24)}日`, color: '#1a73e8', isUrgent: false };
+    };
+
+    // 明細を集約する
+    const getConsolidatedLines = (lines: VendorOrderLine[]) => {
+        const map: Record<string, { itemId: string, itemName: string, qty: number, unit: string, price: number, imageUrl?: string }> = {};
+        lines.forEach(l => {
+            if (!map[l.itemId]) {
+                map[l.itemId] = { itemId: l.itemId, itemName: l.itemName, qty: 0, unit: l.unit, price: l.price, imageUrl: l.item?.imageUrl };
+            }
+            map[l.itemId].qty += l.qty;
+        });
+        return Object.values(map);
     };
 
     if (isLoading) return <div style={{ padding: '20px' }}>読み込み中...</div>;
 
     return (
-        <div style={{ padding: '20px', maxWidth: '1000px', margin: '0 auto', fontFamily: 'sans-serif' }}>
-            <header className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+        <div style={{ padding: '20px', maxWidth: '1000px', margin: '0 auto', fontFamily: '"Inter", sans-serif' }}>
+            <header className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <div>
-                    <h1 style={{ margin: 0, fontSize: '24px', color: '#1a73e8' }}>📦 業者別 注文リスト</h1>
-                    <p style={{ margin: '5px 0', color: '#666', fontSize: '14px' }}>スタッフが追加した注文内容を確認・確定します</p>
+                    <h1 style={{ margin: 0, fontSize: '22px', color: '#1a73e8' }}>📦 業者別注文管理</h1>
+                    <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+                        スタッフの発注を業者・締切ごとに集約しています
+                    </div>
                 </div>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                    <Link href="/" style={{ textDecoration: 'none', color: '#666', padding: '8px 16px', border: '1px solid #ddd', borderRadius: '8px' }}>← 戻る</Link>
-                    <button onClick={() => { localStorage.setItem('is_admin', (!isAdmin).toString()); setIsAdmin(!isAdmin); }} style={{ backgroundColor: isAdmin ? '#d93025' : '#1a73e8', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer' }}>
-                        {isAdmin ? '管理者モードOFF' : '管理者モードON'}
+                <div style={{ display: 'flex', gap: '8px' }}>
+                    <Link href="/" style={{ textDecoration: 'none', color: '#666', padding: '8px 12px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px' }}>戻る</Link>
+                    <button
+                        onClick={() => { localStorage.setItem('is_admin', (!isAdmin).toString()); setIsAdmin(!isAdmin); }}
+                        style={{ backgroundColor: isAdmin ? '#d93025' : '#1a73e8', color: '#fff', border: 'none', padding: '8px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}
+                    >
+                        {isAdmin ? '管理者🔒' : 'スタッフ👤'}
                     </button>
                 </div>
             </header>
 
-            <section className="no-print" style={{ backgroundColor: '#f8f9fa', padding: '20px', borderRadius: '12px', marginBottom: '30px' }}>
-                <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-end' }}>
-                    <div style={{ flex: 1 }}>
-                        <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#666', marginBottom: '5px' }}>業者を選択</label>
-                        <select
-                            value={selectedVendorId}
-                            onChange={(e) => setSelectedVendorId(e.target.value)}
-                            style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '16px' }}
-                        >
-                            <option value="">すべての業者</option>
-                            {suppliers.map(s => (
-                                <option key={s.id} value={s.id}>{s.name} ({s.method || '不明'})</option>
-                            ))}
-                        </select>
-                    </div>
-                    {activeOrder && (
-                        <div style={{ display: 'flex', gap: '10px' }}>
-                            <button onClick={handlePrint} style={{ backgroundColor: '#fff', border: '1px solid #1a73e8', color: '#1a73e8', padding: '12px 20px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>📄 印刷プレビュー</button>
-                            {isAdmin && (
-                                <button
-                                    onClick={() => handleUpdateStatus(activeOrder.id, 'CONFIRMED')}
-                                    style={{ backgroundColor: '#28a745', border: 'none', color: '#fff', padding: '12px 20px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}
-                                >
-                                    ✅ 注文確定 (ロック)
-                                </button>
-                            )}
-                        </div>
-                    )}
-                </div>
-            </section>
+            <div className="no-print" style={{ marginBottom: '20px' }}>
+                <select
+                    value={selectedVendorId}
+                    onChange={(e) => setSelectedVendorId(e.target.value)}
+                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '14px' }}
+                >
+                    <option value="">すべての業者を表示</option>
+                    {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+            </div>
 
-            {/* 注文リスト表示エリア */}
-            {filteredOrders.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '100px 0', border: '2px dashed #ddd', borderRadius: '12px', color: '#999' }}>
-                    注文データが見つかりません
-                </div>
-            ) : (
-                <div className="print-area">
-                    {filteredOrders.map(order => (
-                        <div key={order.id} style={{
-                            backgroundColor: '#fff',
-                            border: order.status === 'DRAFT' ? '2px solid #1a73e8' : '1px solid #ddd',
-                            borderRadius: '12px',
-                            padding: '25px',
-                            marginBottom: '30px',
-                            pageBreakAfter: 'always'
-                        }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid #eee', paddingBottom: '15px', marginBottom: '20px' }}>
-                                <div>
-                                    <div style={{ fontSize: '14px', color: '#666' }}>
-                                        期間: {new Date(order.periodStart).toLocaleDateString()} 〜 {new Date(order.periodEnd).toLocaleDateString()}
+            <main>
+                {filteredOrders.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '60px 0', backgroundColor: '#f9f9f9', borderRadius: '12px', border: '2px dashed #eee', color: '#999' }}>
+                        該当する注文はありません
+                    </div>
+                ) : (
+                    filteredOrders.map(order => {
+                        const deadline = getDeadlineInfo(order.cutoffAt);
+                        const isConsolidated = viewMode[order.id] !== 'breakdown';
+                        const displayLines = isConsolidated ? getConsolidatedLines(order.lines) : order.lines;
+
+                        return (
+                            <div key={order.id} style={{
+                                backgroundColor: '#fff',
+                                borderRadius: '12px',
+                                border: order.status === 'DRAFT' ? '2px solid #1a73e8' : '1px solid #ddd',
+                                boxShadow: order.status === 'DRAFT' ? '0 4px 12px rgba(26,115,232,0.1)' : 'none',
+                                marginBottom: '25px',
+                                overflow: 'hidden'
+                            }}>
+                                {/* Card Header */}
+                                <div style={{
+                                    padding: '15px 20px',
+                                    borderBottom: '1px solid #eee',
+                                    backgroundColor: order.status === 'DRAFT' ? '#f8fbff' : '#fafafa',
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
+                                    flexWrap: 'wrap',
+                                    gap: '10px'
+                                }}>
+                                    <div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <span style={{
+                                                fontSize: '11px',
+                                                padding: '2px 8px',
+                                                borderRadius: '10px',
+                                                backgroundColor: order.status === 'DRAFT' ? '#1a73e8' : order.status === 'CONFIRMED' ? '#34a853' : '#70757a',
+                                                color: '#fff',
+                                                fontWeight: 'bold'
+                                            }}>{order.status}</span>
+                                            <span style={{ fontSize: '18px', fontWeight: 'bold' }}>{order.vendor.name}</span>
+                                        </div>
+                                        <div style={{ fontSize: '13px', color: '#666', marginTop: '4px' }}>
+                                            納品予定: <span style={{ fontWeight: 'bold', color: '#333' }}>{order.deliveryDate ? new Date(order.deliveryDate).toLocaleDateString() : '未定'}</span>
+                                        </div>
                                     </div>
-                                    <h2 style={{ fontSize: '24px', margin: '5px 0' }}>{order.vendor.name} 御中</h2>
-                                    <div style={{ fontSize: '14px', color: '#333' }}>
-                                        発注方法: <span style={{ fontWeight: 'bold' }}>{order.vendor.method || '訪問'}</span>
-                                    </div>
-                                </div>
-                                <div style={{ textAlign: 'right' }}>
-                                    <div style={{
-                                        display: 'inline-block',
-                                        padding: '4px 12px',
-                                        borderRadius: '20px',
-                                        fontSize: '14px',
-                                        fontWeight: 'bold',
-                                        backgroundColor: order.status === 'DRAFT' ? '#e8f0fe' : order.status === 'CONFIRMED' ? '#e6ffed' : '#f1f3f4',
-                                        color: order.status === 'DRAFT' ? '#1a73e8' : order.status === 'CONFIRMED' ? '#28a745' : '#5f6368',
-                                        marginBottom: '10px'
-                                    }}>
-                                        {order.status === 'DRAFT' ? '下書き (収集中)' : order.status === 'CONFIRMED' ? '確定済み' : '送信済み'}
-                                    </div>
-                                    <div style={{ fontSize: '12px', color: '#999' }}>伝票番号: {order.id}</div>
-                                    {order.confirmedAt && (
-                                        <div style={{ fontSize: '12px', color: '#28a745', marginTop: '5px' }}>
-                                            確定: {new Date(order.confirmedAt).toLocaleString()} ({order.confirmedBy})
+
+                                    {order.status === 'DRAFT' && deadline && (
+                                        <div style={{
+                                            textAlign: 'right',
+                                            padding: '6px 12px',
+                                            backgroundColor: deadline.isUrgent ? '#fce8e6' : '#e8f0fe',
+                                            borderRadius: '8px',
+                                            border: `1px solid ${deadline.color}`
+                                        }}>
+                                            <div style={{ fontSize: '11px', color: '#666' }}>締切まで</div>
+                                            <div style={{ fontSize: '16px', fontWeight: 'bold', color: deadline.color }}>{deadline.text}</div>
                                         </div>
                                     )}
                                 </div>
-                            </div>
 
-                            <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px' }}>
-                                <thead>
-                                    <tr style={{ borderBottom: '1px solid #ddd', textAlign: 'left' }}>
-                                        <th style={{ padding: '12px 8px' }}>品目</th>
-                                        <th style={{ padding: '12px 8px' }}>数量</th>
-                                        <th style={{ padding: '12px 8px' }}>単位</th>
-                                        <th style={{ padding: '12px 8px' }}>単価</th>
-                                        <th style={{ padding: '12px 8px' }}>金額</th>
-                                        <th style={{ padding: '12px 8px' }}>備考</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {order.lines.map((line: any) => (
-                                        <tr key={line.id} style={{ borderBottom: '1px solid #f0f0f0' }}>
-                                            <td style={{ padding: '12px 8px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                                {line.item?.imageUrl && (
-                                                    <img src={line.item.imageUrl} alt="" style={{ width: '32px', height: '32px', borderRadius: '4px', objectFit: 'cover' }} className="no-print" />
-                                                )}
-                                                {line.itemName}
-                                            </td>
-                                            <td style={{ padding: '12px 8px', fontWeight: 'bold' }}>{line.qty}</td>
-                                            <td style={{ padding: '12px 8px' }}>{line.unit}</td>
-                                            <td style={{ padding: '12px 8px', color: '#666' }}>¥{line.price.toLocaleString()}</td>
-                                            <td style={{ padding: '12px 8px', fontWeight: 'bold' }}>¥{(line.qty * line.price).toLocaleString()}</td>
-                                            <td style={{ padding: '12px 8px', color: '#666', fontSize: '13px' }}>{line.note || '-'}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-
-                            <div style={{ textAlign: 'right', fontSize: '20px', fontWeight: 'bold' }}>
-                                合計金額: ¥{order.lines.reduce((sum, line) => sum + (line.qty * line.price), 0).toLocaleString()} (税込)
-                            </div>
-
-                            <div className="no-print" style={{ marginTop: '20px', borderTop: '1px dashed #eee', paddingTop: '20px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                                {isAdmin && order.status === 'CONFIRMED' && (
-                                    <button onClick={() => handleUpdateStatus(order.id, 'SENT')} style={{ backgroundColor: '#1a73e8', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer' }}>完了 (発注済みへ)</button>
+                                {/* View Switcher (for Admin) */}
+                                {isAdmin && (
+                                    <div className="no-print" style={{ padding: '0 20px', backgroundColor: '#f8f9fa', borderBottom: '1px solid #eee', display: 'flex' }}>
+                                        <button
+                                            onClick={() => setViewMode({ ...viewMode, [order.id]: 'consolidated' })}
+                                            style={{
+                                                padding: '10px 15px', border: 'none', background: 'none', fontSize: '13px',
+                                                borderBottom: isConsolidated ? '2px solid #1a73e8' : 'none',
+                                                color: isConsolidated ? '#1a73e8' : '#666', fontWeight: isConsolidated ? 'bold' : 'normal', cursor: 'pointer'
+                                            }}>業者向け(合算)</button>
+                                        <button
+                                            onClick={() => setViewMode({ ...viewMode, [order.id]: 'breakdown' })}
+                                            style={{
+                                                padding: '10px 15px', border: 'none', background: 'none', fontSize: '13px',
+                                                borderBottom: !isConsolidated ? '2px solid #1a73e8' : 'none',
+                                                color: !isConsolidated ? '#1a73e8' : '#666', fontWeight: !isConsolidated ? 'bold' : 'normal', cursor: 'pointer'
+                                            }}>内訳(店舗/人別)</button>
+                                    </div>
                                 )}
-                                {isAdmin && order.status !== 'DRAFT' && (
-                                    <button onClick={() => handleUpdateStatus(order.id, 'DRAFT')} style={{ backgroundColor: '#fff', color: '#666', border: '1px solid #ddd', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer' }}>確定解除</button>
-                                )}
+
+                                {/* Card Body: Items Table */}
+                                <div style={{ padding: '0 20px', overflowX: 'auto' }}>
+                                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                        <thead>
+                                            <tr style={{ borderBottom: '1px solid #eee', textAlign: 'left', fontSize: '12px', color: '#999' }}>
+                                                <th style={{ padding: '12px 8px' }}>品目</th>
+                                                <th style={{ padding: '12px 8px' }}>数量</th>
+                                                <th style={{ padding: '12px 8px' }}>単価</th>
+                                                <th style={{ padding: '12px 8px' }}>金額</th>
+                                                {!isConsolidated && <th style={{ padding: '12px 8px' }}>発注元</th>}
+                                                {isAdmin && order.status === 'DRAFT' && <th style={{ padding: '12px 8px' }} className="no-print">操作</th>}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {displayLines.map((line: any, idx: number) => (
+                                                <tr key={isConsolidated ? line.itemId : line.id} style={{ borderBottom: '1px solid #f9f9f9' }}>
+                                                    <td style={{ padding: '12px 8px' }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                            <div style={{ width: '32px', height: '32px', borderRadius: '4px', backgroundColor: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                                                                {line.imageUrl ? <img src={line.imageUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: '14px' }}>🖼️</span>}
+                                                            </div>
+                                                            <div>
+                                                                <div style={{ fontSize: '14px', fontWeight: 'bold' }}>{line.itemName}</div>
+                                                                {!isConsolidated && line.note && <div style={{ fontSize: '11px', color: '#999' }}>📝 {line.note}</div>}
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td style={{ padding: '12px 8px', fontSize: '15px' }}>
+                                                        <span style={{ fontWeight: 'bold' }}>{line.qty}</span>
+                                                        <span style={{ fontSize: '12px', marginLeft: '4px', color: '#666' }}>{line.unit}</span>
+                                                    </td>
+                                                    <td style={{ padding: '12px 8px', fontSize: '13px', color: '#666' }}>¥{line.price.toLocaleString()}</td>
+                                                    <td style={{ padding: '12px 8px', fontSize: '14px', fontWeight: 'bold' }}>¥{(line.qty * line.price).toLocaleString()}</td>
+                                                    {!isConsolidated && (
+                                                        <td style={{ padding: '12px 8px' }}>
+                                                            <div style={{ fontSize: '12px', fontWeight: 'bold' }}>{line.locationId || '不明'}</div>
+                                                            <div style={{ fontSize: '11px', color: '#999' }}>{line.requestedBy || '-'}</div>
+                                                        </td>
+                                                    )}
+                                                    {isAdmin && order.status === 'DRAFT' && (
+                                                        <td style={{ padding: '12px 8px' }} className="no-print">
+                                                            {!isConsolidated ? (
+                                                                <div style={{ display: 'flex', gap: '5px' }}>
+                                                                    <button onClick={() => {
+                                                                        const val = prompt('数量を変更', line.qty.toString());
+                                                                        if (val !== null) handleUpdateLine(order.id, line.id, parseFloat(val));
+                                                                    }} style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #ddd', backgroundColor: '#fff', cursor: 'pointer', fontSize: '11px' }}>編集</button>
+                                                                    <button onClick={() => handleDeleteLine(order.id, line.id)} style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #fee', color: '#d93025', backgroundColor: '#fff', cursor: 'pointer', fontSize: '11px' }}>削除</button>
+                                                                </div>
+                                                            ) : (
+                                                                <span style={{ fontSize: '11px', color: '#ccc' }}>内訳タブで操作</span>
+                                                            )}
+                                                        </td>
+                                                    )}
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                {/* Card Footer */}
+                                <div style={{
+                                    padding: '15px 20px',
+                                    borderTop: '1px solid #eee',
+                                    backgroundColor: '#fff',
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center'
+                                }}>
+                                    <div style={{ textAlign: 'left' }}>
+                                        <div style={{ fontSize: '12px', color: '#999' }}>合計 ({order.lines.length}明細)</div>
+                                        <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#333' }}>
+                                            ¥{order.lines.reduce((sum, l) => sum + (l.qty * l.price), 0).toLocaleString()}
+                                        </div>
+                                    </div>
+
+                                    <div className="no-print" style={{ display: 'flex', gap: '8px' }}>
+                                        <Link
+                                            href={`/printable-order/${order.id}`}
+                                            className="btn-print"
+                                            style={{
+                                                padding: '10px 16px', borderRadius: '8px', border: '1px solid #1a73e8',
+                                                backgroundColor: '#fff', color: '#1a73e8', textDecoration: 'none',
+                                                fontSize: '14px', fontWeight: 'bold'
+                                            }}
+                                        >🖨️ 印刷画面</Link>
+
+                                        {isAdmin && order.status === 'DRAFT' && (
+                                            <button
+                                                onClick={() => handleUpdateStatus(order.id, 'CONFIRMED', true)}
+                                                style={{
+                                                    padding: '10px 16px', borderRadius: '8px', border: 'none',
+                                                    backgroundColor: '#34a853', color: '#fff',
+                                                    fontSize: '14px', fontWeight: 'bold', cursor: 'pointer'
+                                                }}
+                                            >✅ 注文を確定</button>
+                                        )}
+
+                                        {isAdmin && order.status === 'CONFIRMED' && (
+                                            <button
+                                                onClick={() => handleUpdateStatus(order.id, 'SENT', true)}
+                                                style={{
+                                                    padding: '10px 16px', borderRadius: '8px', border: 'none',
+                                                    backgroundColor: '#1a73e8', color: '#fff',
+                                                    fontSize: '14px', fontWeight: 'bold', cursor: 'pointer'
+                                                }}
+                                            >🚀 送信済みへ</button>
+                                        )}
+                                        {isAdmin && order.status !== 'DRAFT' && (
+                                            <button
+                                                onClick={() => handleUpdateStatus(order.id, 'DRAFT', false)}
+                                                style={{ padding: '10px', borderRadius: '8px', border: '1px solid #ddd', backgroundColor: '#fff', color: '#999', cursor: 'pointer' }}
+                                                title="下書きに戻す"
+                                            >🔄</button>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    ))}
-                </div>
-            )}
+                        );
+                    })
+                )}
+            </main>
 
             <style jsx global>{`
-        @media print {
-          .no-print { display: none !important; }
-          body { background: #fff !important; margin: 0; padding: 0; }
-          .print-area { margin: 0; padding: 0; border: none; }
-          select { display: none; }
-        }
-      `}</style>
+                @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+                @media print {
+                    .no-print { display: none !important; }
+                }
+            `}</style>
         </div>
     );
 }
