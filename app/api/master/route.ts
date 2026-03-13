@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-export const dynamic = 'force-dynamic';
+export const dynamic = 'force-dynamic'; // Force dynamic execution for Vercel build
 
 export async function GET() {
     // DATABASE_URL がない場合はビルド時とみなして空情報を返す
