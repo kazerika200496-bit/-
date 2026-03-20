@@ -106,7 +106,7 @@ export default function PrintableOrder() {
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '30px', alignItems: 'flex-end' }}>
                 <div style={{ borderBottom: '2px solid #000', width: '60%', paddingBottom: '5px' }}>
                     <div style={{ fontSize: '24px', fontWeight: 'bold' }}>
-                        {order.vendor.name} <span style={{ fontSize: '16px', fontWeight: 'normal' }}>御中</span>
+                        {order.vendor.officialName || order.vendor.name} <span style={{ fontSize: '16px', fontWeight: 'normal' }}>御中</span>
                     </div>
                 </div>
                 <div style={{ textAlign: 'right', borderBottom: '1px solid #000', width: '35%', paddingBottom: '5px' }}>

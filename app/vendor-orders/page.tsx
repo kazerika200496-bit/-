@@ -120,10 +120,10 @@ export default function VendorOrdersPage() {
 
     // 明細を集約する
     const getConsolidatedLines = (lines: VendorOrderLine[]) => {
-        const map: Record<string, { itemId: string, itemName: string, qty: number, unit: string, price: number, imageUrl?: string }> = {};
+        const map: Record<string, { itemId: string, itemName: string, displayName?: string, qty: number, unit: string, price: number, imageUrl?: string }> = {};
         lines.forEach(l => {
             if (!map[l.itemId]) {
-                map[l.itemId] = { itemId: l.itemId, itemName: l.itemName, qty: 0, unit: l.unit, price: l.price, imageUrl: l.item?.imageUrl };
+                map[l.itemId] = { itemId: l.itemId, itemName: l.itemName, displayName: l.item?.displayName, qty: 0, unit: l.unit, price: l.price, imageUrl: l.item?.imageUrl };
             }
             map[l.itemId].qty += l.qty;
         });
@@ -267,7 +267,7 @@ export default function VendorOrdersPage() {
                                                                 {line.imageUrl ? <img src={line.imageUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: '14px' }}>🖼️</span>}
                                                             </div>
                                                             <div>
-                                                                <div style={{ fontSize: '14px', fontWeight: 'bold' }}>{line.itemName}</div>
+                                                                <div style={{ fontSize: '14px', fontWeight: 'bold' }}>{line.displayName || line.item?.displayName || line.itemName}</div>
                                                                 {!isConsolidated && line.note && <div style={{ fontSize: '11px', color: '#999' }}>📝 {line.note}</div>}
                                                             </div>
                                                         </div>

@@ -182,6 +182,7 @@ export default function Home() {
             setCart([...cart, {
                 itemId: item.id,
                 itemName: item.name,
+                displayName: item.displayName,
                 quantity: 1,
                 unit: item.unit,
                 price: item.price ?? 0
@@ -470,7 +471,7 @@ export default function Home() {
                                         </div>
                                         <div style={{ flex: 1 }}>
                                             <div style={{ fontSize: '11px', color: '#999' }}>{item.category} / {item.id}</div>
-                                            <div style={{ fontSize: '15px', fontWeight: 'bold', margin: '2px 0', lineHeight: '1.2' }}>{item.name}</div>
+                                            <div style={{ fontSize: '15px', fontWeight: 'bold', margin: '2px 0', lineHeight: '1.2' }}>{item.displayName || item.name}</div>
                                             <div style={{ fontSize: '14px', color: '#1a73e8', fontWeight: 'bold' }}>
                                                 ¥{(item.price ?? 0).toLocaleString()}
                                                 <span style={{ fontSize: '12px', color: '#666', fontWeight: 'normal', marginLeft: '4px' }}>/ {item.unit}</span>
@@ -555,7 +556,7 @@ export default function Home() {
                             ) : (
                                 cart.map(item => (
                                     <div key={item.itemId} style={{ marginBottom: '15px', padding: '12px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
-                                        <div style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '8px' }}>{item.itemName}</div>
+                                        <div style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '8px' }}>{item.displayName || item.itemName}</div>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                             <div style={{ fontSize: '13px', color: '#1a73e8' }}>¥{((item.price ?? 0) * item.quantity).toLocaleString()}</div>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
