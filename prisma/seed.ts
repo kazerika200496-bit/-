@@ -63,27 +63,37 @@ async function main() {
     console.log('Seeding Users...');
 
     // 1. Admin ユーザーの作成
+    const adminPassword = 'AdminPassword!2026';
     await prisma.user.upsert({
         where: { username: 'admin' },
-        update: {},
+        update: { password: adminPassword },
         create: {
             username: 'admin',
-            password: 'password123', // 簡易ハッシュなし (ミニマム構成)
+            password: adminPassword, // 簡易ハッシュなし (ミニマム構成)
             role: 'admin',
         }
     });
 
     // 2. 各ロケーション用の Store ユーザーの作成
+    console.log('\n--- 初期ログイン情報 ---');
+    console.log(`管理者: ID [admin] / PASS [${adminPassword}]`);
+
     for (const loc of locations) {
         const username = loc.name.replace(/\s+/g, '_'); // 簡易的なユーザー名
+        const idNumber = loc.id.replace(/\D/g, ''); // 数字部分だけ抽出 (例: ISH001 -> 001)
+        const password = `ishida${idNumber || '999'}`; // 例: ishida001
+
+        console.log(`店舗 [${username}]: ID [${username}] / PASS [${password}]`);
+
         await prisma.user.upsert({
             where: { username: username },
             update: {
-                locationId: loc.id
+                locationId: loc.id,
+                password: password
             },
             create: {
                 username: username,
-                password: 'password123',
+                password: password,
                 role: 'store',
                 locationId: loc.id
             }
