@@ -18,6 +18,7 @@ function getClient(): PrismaClient {
  * 実行時には安定した接続を提供します。
  */
 export const prisma = {
+    get user() { return getClient().user; },
     get item() { return getClient().item; },
     get location() { return getClient().location; },
     get supplier() { return getClient().supplier; },
