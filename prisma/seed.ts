@@ -58,6 +58,39 @@ async function main() {
             create: { ...sup },
         });
     }
+
+    // USERS
+    console.log('Seeding Users...');
+
+    // 1. Admin ユーザーの作成
+    await prisma.user.upsert({
+        where: { username: 'admin' },
+        update: {},
+        create: {
+            username: 'admin',
+            password: 'password123', // 簡易ハッシュなし (ミニマム構成)
+            role: 'admin',
+        }
+    });
+
+    // 2. 各ロケーション用の Store ユーザーの作成
+    for (const loc of locations) {
+        const username = loc.name.replace(/\s+/g, '_'); // 簡易的なユーザー名
+        await prisma.user.upsert({
+            where: { username: username },
+            update: {
+                locationId: loc.id
+            },
+            create: {
+                username: username,
+                password: 'password123',
+                role: 'store',
+                locationId: loc.id
+            }
+        });
+    }
+
+    console.log('Database seeded successfully.');
 }
 
 main()

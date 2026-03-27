@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getSession } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -50,14 +51,22 @@ export async function GET(request: Request) {
     const vendorId = searchParams.get('vendorId');
     const status = searchParams.get('status'); // DRAFT | CONFIRMED | SENT
 
+    const session = await getSession();
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const isStore = session.role === 'store';
+    const storeLocationId = session.locationId;
+
     try {
         const orders = await prisma.vendorOrder.findMany({
             where: {
                 ...(vendorId && { vendorId }),
                 ...(status && { status }),
+                ...(isStore && storeLocationId ? { lines: { some: { locationId: storeLocationId } } } : {}),
             },
             include: {
                 lines: {
+                    where: isStore && storeLocationId ? { locationId: storeLocationId } : undefined,
                     include: {
                         item: true,
                     },
@@ -68,20 +77,34 @@ export async function GET(request: Request) {
                 vendor: true,
             },
             orderBy: [
-                { status: 'asc' }, // DRAFTを優先
-                { cutoffAt: 'asc' }
             ]
         });
-        return NextResponse.json(orders);
+
+        // Strip price for store role
+        const safeOrders = orders.map(order => ({
+            ...order,
+            lines: order.lines.map(line => ({
+                ...line,
+                price: isStore ? null : line.price
+            }))
+        }));
+
+        return NextResponse.json(safeOrders);
     } catch (error) {
         return NextResponse.json({ error: 'Failed to fetch orders' }, { status: 500 });
     }
 }
 
-// 注文（明細）の追加
 export async function POST(request: Request) {
     try {
-        const { vendorId, itemId, qty, unit, price, itemName, note, requestedBy, locationId } = await request.json();
+        const session = await getSession();
+        if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+        const body = await request.json();
+        // If store, force locationId and requestedBy to match session to prevent forgery
+        const locationId = session.role === 'store' ? session.locationId : body.locationId;
+        const requestedBy = session.role === 'store' ? session.username : body.requestedBy;
+        const { vendorId, itemId, qty, unit, price, itemName, note } = body;
 
         const vendor = await prisma.supplier.findUnique({
             where: { id: vendorId }
@@ -150,7 +173,17 @@ export async function POST(request: Request) {
 // ステータス更新 (確定・発注済)
 export async function PATCH(request: Request) {
     try {
+        const session = await getSession();
+        if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
         const { id, status, confirmedBy, isLocked } = await request.json();
+
+        // 権限チェック: 店舗ユーザーは CONFIRMED (自店舗の受付済として確定させるアクション) だけ可能とする。
+        // ※実際には店舗は「受付済」状態のOrder自体を「確定」状態にする仕様か？
+        // ※全体Lock等はAdminが行う想定
+        if (session.role === 'store' && status === 'SENT') {
+            return NextResponse.json({ error: 'Stores cannot mark orders as SENT' }, { status: 403 });
+        }
         const order = await prisma.vendorOrder.update({
             where: { id },
             data: {

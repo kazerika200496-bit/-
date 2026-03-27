@@ -33,6 +33,24 @@ export default function Home() {
     const [localIp, setLocalIp] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [requesterName, setRequesterName] = useState('');
+    const [currentUser, setCurrentUser] = useState<any>(null);
+    const [recentConfirmations, setRecentConfirmations] = useState<any[]>([]);
+
+    useEffect(() => {
+        const loadAuth = async () => {
+            try {
+                const res = await fetch('/api/auth/me');
+                if (res.ok) {
+                    const data = await res.json();
+                    setCurrentUser(data.user);
+                    if (data.user?.role === 'store') {
+                        setSourceId(data.user.locationId || '');
+                    }
+                }
+            } catch (err) { }
+        };
+        loadAuth();
+    }, []);
 
 
     useEffect(() => {
@@ -54,13 +72,27 @@ export default function Home() {
                 }
             } catch (err) {
                 console.error('Failed to load from API, falling back to local:', err);
-                const savedItems = localStorage.getItem('master_items');
-                const savedLocs = localStorage.getItem('master_locations');
-                const savedSups = localStorage.getItem('master_suppliers');
-                if (savedItems) setItems(JSON.parse(savedItems));
-                if (savedLocs) setLocations(JSON.parse(savedLocs));
-                if (savedSups) setSuppliers(JSON.parse(savedSups));
             }
+        };
+
+        const loadRecentHistory = async () => {
+            try {
+                // To check recent duplicates, fetch history
+                const res = await fetch('/api/vendor-orders');
+                if (res.ok) {
+                    const orders = await res.json();
+                    // Orders from last 14 days
+                    const twoWeeksAgo = new Date();
+                    twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+                    const recent = orders.filter((o: any) => new Date(o.createdAt) >= twoWeeksAgo && o.status !== 'DRAFT');
+
+                    const recentLines: any[] = [];
+                    recent.forEach((o: any) => {
+                        if (o.lines) recentLines.push(...o.lines);
+                    });
+                    setRecentConfirmations(recentLines);
+                }
+            } catch (e) { }
         };
 
         const loadLocalOrders = () => {
@@ -70,6 +102,7 @@ export default function Home() {
 
         loadFromApi();
         loadLocalOrders();
+        loadRecentHistory();
         setIsMounted(true);
 
 
@@ -273,31 +306,38 @@ export default function Home() {
 
     if (!isMounted) return <div style={{ padding: '50px', textAlign: 'center' }}>読み込み中...</div>;
 
+    const isStoreRole = currentUser?.role === 'store';
+
+    const handleLogout = async () => {
+        await fetch('/api/auth/logout', { method: 'POST' });
+        window.location.href = '/login';
+    };
+
     return (
-        <div className="container">
-            {/* Header */}
-            <header>
-                <div className="header-title">いしだクリーニング 資材発注</div>
-                <nav>
-                    <div className="header-requester">
-                        <span className="header-requester-label">👤 発注者:</span>
-                        <input
-                            type="text"
-                            placeholder="名前"
-                            className="header-requester-input"
-                            value={requesterName}
-                            onChange={(e) => setRequesterName(e.target.value)}
-                        />
+        <div className="min-h-screen bg-gray-50 flex flex-col pb-32">
+            <nav className="bg-white shadow">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="flex justify-between h-16">
+                        <div className="flex flex-col justify-center">
+                            <span className="text-xl font-bold text-gray-800">資材発注フォーム</span>
+                            <span className="text-xs text-gray-500">v1.1</span>
+                        </div>
+                        <div className="flex items-center space-x-4">
+                            <Link href="/history" className="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                                発注履歴
+                            </Link>
+                            {currentUser?.role === 'admin' && (
+                                <Link href="/vendor-orders" className="text-purple-600 hover:text-purple-800 text-sm font-medium">
+                                    管理画面
+                                </Link>
+                            )}
+                            <button onClick={handleLogout} className="text-gray-500 hover:text-gray-700 text-sm">
+                                ログアウト
+                            </button>
+                        </div>
                     </div>
-                    <button
-                        onClick={() => setShowMobileModal(true)}
-                        className="btn-mobile-only"
-                    >📱 スマホ</button>
-                    <Link href="/vendor-orders" className="nav-link-important">📦 業者発注一覧</Link>
-                    <Link href="/history" className="nav-link">📜 履歴</Link>
-                    <Link href="/admin" className="nav-link">⚙️ マスタ</Link>
-                </nav>
-            </header>
+                </div>
+            </nav>
 
             {/* Mobile QR Modal */}
             {showMobileModal && (
@@ -357,9 +397,10 @@ export default function Home() {
                                 <select
                                     value={sourceId}
                                     onChange={(e) => setSourceId(e.target.value)}
-                                    style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', marginTop: '4px', fontSize: '14px', backgroundColor: '#fdfdfd' }}
+                                    disabled={isStoreRole}
+                                    className={`mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md ${isStoreRole ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                                 >
-                                    <option value="">選択してください</option>
+                                    <option value="">発注元を選択してください</option>
                                     {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
                                 </select>
                             </div>
@@ -421,6 +462,7 @@ export default function Home() {
                     <div className="item-grid">
                         {filteredItems.map(item => {
                             const isRec = recommendedItemIds.includes(item.id);
+                            const itemInCart = cart.find(c => c.itemId === item.id);
                             return (
                                 <div key={item.id} style={{
                                     backgroundColor: '#fff',
@@ -472,28 +514,43 @@ export default function Home() {
                                         <div style={{ flex: 1 }}>
                                             <div style={{ fontSize: '11px', color: '#999' }}>{item.category} / {item.id}</div>
                                             <div style={{ fontSize: '15px', fontWeight: 'bold', margin: '2px 0', lineHeight: '1.2' }}>{item.displayName || item.name}</div>
-                                            <div style={{ fontSize: '14px', color: '#1a73e8', fontWeight: 'bold' }}>
-                                                ¥{(item.price ?? 0).toLocaleString()}
-                                                <span style={{ fontSize: '12px', color: '#666', fontWeight: 'normal', marginLeft: '4px' }}>/ {item.unit}</span>
-                                            </div>
+                                            {!isStoreRole && (
+                                                <div style={{ fontSize: '14px', color: '#1a73e8', fontWeight: 'bold' }}>
+                                                    ¥{(item.price ?? 0).toLocaleString()}
+                                                    <span style={{ fontSize: '12px', color: '#666', fontWeight: 'normal', marginLeft: '4px' }}>/ {item.unit}</span>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
 
-                                    <button
-                                        className="btn-add"
-                                        onClick={() => addToCart(item)}
-                                        style={{
-                                            marginTop: '15px',
-                                            padding: '12px',
-                                            borderRadius: '8px',
-                                            border: 'none',
-                                            backgroundColor: '#e8f0fe',
-                                            color: '#1a73e8',
-                                            fontWeight: 'bold',
-                                            cursor: 'pointer',
-                                            fontSize: '14px'
-                                        }}
-                                    >🛒 追加する</button>
+                                    <div className="mt-3 flex items-center justify-between">
+                                        <button
+                                            className="btn-add"
+                                            onClick={() => addToCart(item)}
+                                            style={{
+                                                marginTop: '15px',
+                                                padding: '12px',
+                                                borderRadius: '8px',
+                                                border: 'none',
+                                                backgroundColor: '#e8f0fe',
+                                                color: '#1a73e8',
+                                                fontWeight: 'bold',
+                                                cursor: 'pointer',
+                                                fontSize: '14px'
+                                            }}
+                                        >🛒 追加する</button>
+                                        {/* 重複発注警告 */}
+                                        {sourceId && recentConfirmations.some(l => l.itemId === item.id && l.locationId === sourceId) && (
+                                            <div className="mt-2 text-xs text-red-600 font-bold bg-red-50 p-1 rounded inline-block">
+                                                ⚠️ 直近(14日以内)に発注済
+                                            </div>
+                                        )}
+                                    </div>
+                                    {!isStoreRole && (
+                                        <div className="mt-2 text-sm text-gray-900 border-t pt-2">
+                                            単価: {item.price === null ? '-' : `${item.price}円`}
+                                        </div>
+                                    )}
                                 </div>
                             );
                         })}
@@ -558,7 +615,9 @@ export default function Home() {
                                     <div key={item.itemId} style={{ marginBottom: '15px', padding: '12px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
                                         <div style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '8px' }}>{item.displayName || item.itemName}</div>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <div style={{ fontSize: '13px', color: '#1a73e8' }}>¥{((item.price ?? 0) * item.quantity).toLocaleString()}</div>
+                                            {!isStoreRole && (
+                                                <div style={{ fontSize: '13px', color: '#1a73e8' }}>¥{((item.price ?? 0) * item.quantity).toLocaleString()}</div>
+                                            )}
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                 <button onClick={() => updateQuantity(item.itemId, -1)} style={{ width: '32px', height: '32px', borderRadius: '50%', border: '1px solid #ddd', backgroundColor: '#fff', cursor: 'pointer' }}>-</button>
                                                 <span style={{ minWidth: '24px', textAlign: 'center', fontWeight: 'bold' }}>{item.quantity}</span>

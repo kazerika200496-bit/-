@@ -130,6 +130,20 @@ export default function VendorOrdersPage() {
         return Object.values(map);
     };
 
+    const getStatusLabel = (status: string) => {
+        if (status === 'DRAFT') return '受付済';
+        if (status === 'CONFIRMED') return '発注済';
+        if (status === 'SENT') return '完了';
+        return status;
+    };
+
+    const getStatusColor = (status: string) => {
+        if (status === 'DRAFT') return '#1a73e8'; // Blue
+        if (status === 'CONFIRMED') return '#fbbc04'; // Yellow
+        if (status === 'SENT') return '#34a853'; // Green
+        return '#70757a'; // Gray
+    };
+
     if (isLoading) return <div style={{ padding: '20px' }}>読み込み中...</div>;
 
     return (
@@ -200,14 +214,19 @@ export default function VendorOrdersPage() {
                                                 fontSize: '11px',
                                                 padding: '2px 8px',
                                                 borderRadius: '10px',
-                                                backgroundColor: order.status === 'DRAFT' ? '#1a73e8' : order.status === 'CONFIRMED' ? '#34a853' : '#70757a',
+                                                backgroundColor: getStatusColor(order.status),
                                                 color: '#fff',
                                                 fontWeight: 'bold'
-                                            }}>{order.status}</span>
+                                            }}>{getStatusLabel(order.status)}</span>
                                             <span style={{ fontSize: '18px', fontWeight: 'bold' }}>{order.vendor.name}</span>
                                         </div>
                                         <div style={{ fontSize: '13px', color: '#666', marginTop: '4px' }}>
                                             納品予定: <span style={{ fontWeight: 'bold', color: '#333' }}>{order.deliveryDate ? new Date(order.deliveryDate).toLocaleDateString() : '未定'}</span>
+                                            {order.confirmedAt && (
+                                                <span style={{ marginLeft: '10px' }}>
+                                                    更新: {new Date(order.confirmedAt).toLocaleDateString()} {new Date(order.confirmedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
 
@@ -276,8 +295,8 @@ export default function VendorOrdersPage() {
                                                         <span style={{ fontWeight: 'bold' }}>{line.qty}</span>
                                                         <span style={{ fontSize: '12px', marginLeft: '4px', color: '#666' }}>{line.unit}</span>
                                                     </td>
-                                                    <td style={{ padding: '12px 8px', fontSize: '13px', color: '#666' }}>¥{line.price.toLocaleString()}</td>
-                                                    <td style={{ padding: '12px 8px', fontSize: '14px', fontWeight: 'bold' }}>¥{(line.qty * line.price).toLocaleString()}</td>
+                                                    <td style={{ padding: '12px 8px', fontSize: '13px', color: '#666' }}>{line.price === null ? '-' : `¥${line.price.toLocaleString()}`}</td>
+                                                    <td style={{ padding: '12px 8px', fontSize: '14px', fontWeight: 'bold' }}>{line.price === null ? '-' : `¥${(line.qty * line.price).toLocaleString()}`}</td>
                                                     {!isConsolidated && (
                                                         <td style={{ padding: '12px 8px' }}>
                                                             <div style={{ fontSize: '12px', fontWeight: 'bold' }}>{line.locationId || '不明'}</div>
@@ -317,7 +336,7 @@ export default function VendorOrdersPage() {
                                     <div style={{ textAlign: 'left' }}>
                                         <div style={{ fontSize: '12px', color: '#999' }}>合計 ({order.lines.length}明細)</div>
                                         <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#333' }}>
-                                            ¥{order.lines.reduce((sum, l) => sum + (l.qty * l.price), 0).toLocaleString()}
+                                            {order.lines[0]?.price === null ? '-' : `¥${order.lines.reduce((sum, l) => sum + (l.qty * (l.price || 0)), 0).toLocaleString()}`}
                                         </div>
                                     </div>
 

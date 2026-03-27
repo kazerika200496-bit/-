@@ -2,43 +2,55 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { MOCK_ORDERS, LOCATIONS as INITIAL_LOCATIONS, SUPPLIERS as INITIAL_SUPPLIERS } from '../mockData';
-import { Order, Location, Supplier } from '../types';
+import { Supplier } from '../types';
 
 export default function HistoryPage() {
-    const [orders, setOrders] = useState<Order[]>([]);
-    const [locations, setLocations] = useState<Location[]>(INITIAL_LOCATIONS);
-    const [suppliers, setSuppliers] = useState<Supplier[]>(INITIAL_SUPPLIERS);
+    const [orders, setOrders] = useState<any[]>([]);
+    const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        const savedLocs = localStorage.getItem('master_locations');
-        const savedSups = localStorage.getItem('master_suppliers');
-        const savedOrders = localStorage.getItem('local_orders');
+        const fetchHistory = async () => {
+            try {
+                const [ordersRes, masterRes] = await Promise.all([
+                    fetch('/api/vendor-orders'),
+                    fetch('/api/master')
+                ]);
+                const ordersData = await ordersRes.json();
+                const masterData = await masterRes.json();
 
-        if (savedLocs) setLocations(JSON.parse(savedLocs));
-        if (savedSups) setSuppliers(JSON.parse(savedSups));
-        if (savedOrders) {
-            setOrders(JSON.parse(savedOrders));
-        } else {
-            setOrders(MOCK_ORDERS);
-        }
+                // Sort orders by most recent first
+                const sorted = ordersData.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+                setOrders(sorted);
+                setSuppliers(masterData.suppliers);
+            } catch (err) {
+                console.error('Failed to fetch history', err);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchHistory();
     }, []);
 
-    const completeOrder = (id: string) => {
-        const updated = orders.map(o => o.id === id ? { ...o, status: 'completed' as const } : o);
-        setOrders(updated);
-        localStorage.setItem('local_orders', JSON.stringify(updated));
+    const getSupplierName = (id: string) => suppliers.find(s => s.id === id)?.name || id;
+
+    const getStatusStyle = (status: string) => {
+        switch (status) {
+            case 'DRAFT': return { label: '受付済', bg: '#e8f0fe', color: '#1a73e8' };
+            case 'CONFIRMED': return { label: '発注済', bg: '#fef7e0', color: '#b06000' };
+            case 'SENT': return { label: '完了', bg: '#e6f4ea', color: '#137333' };
+            default: return { label: status, bg: '#f1f3f4', color: '#5f6368' };
+        }
     };
 
-
-    const getLocationName = (id: string) => locations.find(l => l.id === id)?.name || id;
-    const getSupplierName = (id: string) => suppliers.find(s => s.id === id)?.name || id;
+    if (isLoading) return <div style={{ padding: '50px', textAlign: 'center' }}>読み込み中...</div>;
 
     return (
         <div className="container" style={{ paddingBottom: '50px' }}>
             <header style={{ marginBottom: '30px', borderBottom: '2px solid #0066cc', paddingBottom: '15px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h1 style={{ margin: 0, fontSize: '1.5rem' }}>📜 発注履歴</h1>
+                    <h1 style={{ margin: 0, fontSize: '1.5rem' }}>📜 自店舗 発注履歴</h1>
                     <Link href="/" className="btn" style={{ padding: '8px 20px', backgroundColor: '#6c757d' }}>
                         ⬅️ 戻る
                     </Link>
@@ -49,78 +61,58 @@ export default function HistoryPage() {
                 <div className="card" style={{ overflowX: 'auto' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                         <thead>
-                            <tr style={{ borderBottom: '2px solid #eee' }}>
-                                <th style={{ padding: '12px' }}>日付</th>
-                                <th style={{ padding: '12px' }}>発注元</th>
+                            <tr style={{ borderBottom: '2px solid #eee', backgroundColor: '#fafafa' }}>
+                                <th style={{ padding: '12px' }}>発注日/更新日</th>
                                 <th style={{ padding: '12px' }}>発注先</th>
-                                <th style={{ padding: '12px' }}>品目数</th>
-                                <th style={{ padding: '12px' }}>合計金額</th>
+                                <th style={{ padding: '12px' }}>発注内容</th>
                                 <th style={{ padding: '12px' }}>ステータス</th>
-                                <th style={{ padding: '12px' }}>操作</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {orders.map(order => (
-                                <tr key={order.id} style={{ borderBottom: '1px solid #eee' }}>
-                                    <td style={{ padding: '12px' }}>
-                                        {new Date(order.date).toLocaleDateString()}
-                                    </td>
-                                    <td style={{ padding: '12px' }}>{getLocationName(order.sourceId)}</td>
-                                    <td style={{ padding: '12px' }}>{getSupplierName(order.destinationId)}</td>
-                                    <td style={{ padding: '12px' }}>{order.items.length}</td>
-                                    <td style={{ padding: '12px' }}>
-                                        ¥{(order.totalAmount || 0).toLocaleString()}
-                                    </td>
-                                    <td style={{ padding: '12px' }}>
-                                        <span style={{
-                                            padding: '4px 8px',
-                                            borderRadius: '4px',
-                                            fontSize: '0.8rem',
-                                            backgroundColor: order.status === 'completed' ? '#d4edda' : '#fff3cd',
-                                            color: order.status === 'completed' ? '#155724' : '#856404'
-                                        }}>
-                                            {order.status === 'completed' ? '完了' : '保留'}
-                                        </span>
-                                    </td>
-                                    <td style={{ padding: '12px' }}>
-                                        <Link
-                                            href={`/printable-order/${order.id}`}
-                                            className="btn"
-                                            style={{
-                                                fontSize: '0.8rem',
-                                                padding: '6px 12px',
-                                                backgroundColor: '#1a73e8',
-                                                color: '#fff',
-                                                textDecoration: 'none',
-                                                display: 'inline-block',
-                                                borderRadius: '6px'
-                                            }}
-
-                                        >
-                                            📄 発注書を表示・再発行
-                                        </Link>
-                                        {order.status !== 'completed' && (
-                                            <button
-                                                onClick={() => completeOrder(order.id)}
-                                                style={{
-                                                    fontSize: '0.8rem',
-                                                    padding: '6px 12px',
-                                                    backgroundColor: '#28a745',
-                                                    color: '#fff',
-                                                    border: 'none',
-                                                    borderRadius: '6px',
-                                                    cursor: 'pointer',
-                                                    marginLeft: '8px',
-                                                    fontWeight: 'bold'
-                                                }}
-                                            >
-                                                ✅ 完了にする
-                                            </button>
-                                        )}
-
-                                    </td>
-                                </tr>
-                            ))}
+                            {orders.map(order => {
+                                const style = getStatusStyle(order.status);
+                                return (
+                                    <tr key={order.id} style={{ borderBottom: '1px solid #eee' }}>
+                                        <td style={{ padding: '12px', verticalAlign: 'top' }}>
+                                            <div style={{ fontWeight: 'bold' }}>{new Date(order.createdAt).toLocaleDateString()}</div>
+                                            {order.confirmedAt && (
+                                                <div style={{ fontSize: '0.8rem', color: '#666', marginTop: '4px' }}>
+                                                    更新: {new Date(order.confirmedAt).toLocaleDateString()} {new Date(order.confirmedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                </div>
+                                            )}
+                                        </td>
+                                        <td style={{ padding: '12px', verticalAlign: 'top' }}>
+                                            <div style={{ fontWeight: 'bold' }}>{getSupplierName(order.vendorId)}</div>
+                                            <div style={{ fontSize: '0.8rem', color: '#666' }}>締切: {new Date(order.cutoffAt).toLocaleDateString()}</div>
+                                        </td>
+                                        <td style={{ padding: '12px', verticalAlign: 'top' }}>
+                                            <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '0.9rem' }}>
+                                                {order.lines.map((line: any) => (
+                                                    <li key={line.id} style={{ marginBottom: '4px' }}>
+                                                        {line.itemName} x <strong>{line.qty} {line.unit}</strong>
+                                                        {line.price !== null && (
+                                                            <span style={{ color: '#666', marginLeft: '8px' }}>(¥{line.price.toLocaleString()})</span>
+                                                        )}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </td>
+                                        <td style={{ padding: '12px', verticalAlign: 'top' }}>
+                                            <span style={{
+                                                padding: '4px 10px',
+                                                borderRadius: '20px',
+                                                fontSize: '0.85rem',
+                                                fontWeight: 'bold',
+                                                backgroundColor: style.bg,
+                                                color: style.color,
+                                                display: 'inline-block'
+                                            }}>
+                                                {style.label}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
                     {orders.length === 0 && (

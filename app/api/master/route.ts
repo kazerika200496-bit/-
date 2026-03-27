@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getSession } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic'; // Force dynamic execution for Vercel build
 
@@ -10,10 +11,23 @@ export async function GET() {
     }
     try {
         const items = await prisma.item.findMany();
-        const locations = await prisma.location.findMany();
-        const suppliers = await prisma.supplier.findMany();
+        const locations = await prisma.location.findMany({ orderBy: { id: 'asc' } });
+        const suppliers = await prisma.supplier.findMany({ orderBy: { id: 'asc' } });
 
-        return NextResponse.json({ items, locations, suppliers });
+        // Session Role Filter
+        const session = await getSession();
+        const isStore = session?.role === 'store';
+
+        const safeItems = items.map(item => ({
+            ...item,
+            price: isStore ? null : item.price
+        }));
+
+        return NextResponse.json({
+            items: safeItems,
+            locations,
+            suppliers
+        });
     } catch (error) {
         console.error('Failed to fetch master data:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

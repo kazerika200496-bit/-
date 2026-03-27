@@ -27,6 +27,18 @@ model Location {
   name              String
   type              String   // '店舗' | '工場'
   defaultSupplierId String?
+  users             User[]
+}
+
+model User {
+  id         String    @id @default(uuid())
+  username   String    @unique
+  password   String
+  role       String    @default("store") // 'admin' | 'store'
+  locationId String?   // 店舗ユーザーの場合は紐づくLocationのID
+  location   Location? @relation(fields: [locationId], references: [id])
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 }
 
 model Supplier {
