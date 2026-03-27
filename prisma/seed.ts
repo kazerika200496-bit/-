@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import * as crypto from 'crypto';
 
 const prisma = new PrismaClient();
 
@@ -71,34 +72,41 @@ async function main() {
             username: 'admin',
             password: adminPassword, // 簡易ハッシュなし (ミニマム構成)
             role: 'admin',
-        }
-    });
+        },
+    }); // Closing the upsert call for admin user
 
     // 2. 各ロケーション用の Store ユーザーの作成
     console.log('\n--- 初期ログイン情報 ---');
     console.log(`管理者: ID [admin] / PASS [${adminPassword}]`);
 
+    // We will collect passwords to write them out or display them
+    const accountList: { store: string, id: string, pass: string }[] = [];
+
     for (const loc of locations) {
         const username = loc.name.replace(/\s+/g, '_'); // 簡易的なユーザー名
-        const idNumber = loc.id.replace(/\D/g, ''); // 数字部分だけ抽出 (例: ISH001 -> 001)
-        const password = `ishida${idNumber || '999'}`; // 例: ishida001
+        const randomPass = crypto.randomBytes(4).toString('hex'); // 例: a1b2c3d4
 
-        console.log(`店舗 [${username}]: ID [${username}] / PASS [${password}]`);
+        accountList.push({ store: loc.name, id: username, pass: randomPass });
+        console.log(`店舗 [${username}]: ID [${username}] / PASS [${randomPass}]`);
 
         await prisma.user.upsert({
             where: { username: username },
             update: {
                 locationId: loc.id,
-                password: password
+                password: randomPass
             },
             create: {
                 username: username,
-                password: password,
+                password: randomPass,
                 role: 'store',
                 locationId: loc.id
             }
         });
     }
+
+    const fs = require('fs');
+    fs.writeFileSync('c:\\資材発注フォーム\\ishida-ordering-app\\generated_accounts.json', JSON.stringify(accountList, null, 2));
+    console.log('Account list saved to generated_accounts.json');
 
     console.log('Database seeded successfully.');
 }
