@@ -96,12 +96,12 @@ model VendorOrderLine {
 
 model Receipt {
   id            String    @id @default(cuid())
-  imageUrl      String    // アップロードされた画像のURL
+  imageUrl      String    // Vercel Blob (Private)画像のURL
   payee         String?   // OCR抽出: 支払先（店名）
   amount        Int?      // OCR抽出: 合計金額
   receiptDate   DateTime? // OCR抽出: 領収日付
-  rawText       String?   // OCR抽出: 生テキスト（デバッグ・再抽出用）
-  status        String    @default("REVIEWING") // 'REVIEWING' | 'VERIFIED'
+  rawOcrData    String?   // OCR抽出: Document AI / Expense Parser の生JSON文字列
+  status        String    @default("uploaded") // uploaded | ocr_done | needs_review | confirmed | export_ready
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
