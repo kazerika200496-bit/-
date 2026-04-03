@@ -1,60 +1,107 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { DocumentProcessorServiceClient } from '@google-cloud/documentai';
 
 const prisma = new PrismaClient();
+
+// Initialize Google Document AI dynamically using Vercel stringified JSON env var
+let client: DocumentProcessorServiceClient | null = null;
+
+function getDocumentAIClient() {
+    if (client) return client;
+    const rawCreds = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+    if (!rawCreds) {
+        console.warn('GOOGLE_SERVICE_ACCOUNT_JSON is missing. Will fail if OCR is executed.');
+        return null;
+    }
+    try {
+        const credentials = JSON.parse(rawCreds);
+        client = new DocumentProcessorServiceClient({ credentials });
+        return client;
+    } catch (error) {
+        console.error('Failed to parse GOOGLE_SERVICE_ACCOUNT_JSON:', error);
+        return null;
+    }
+}
 
 export async function POST(request: NextRequest) {
     try {
         const { receiptId } = await request.json();
+        if (!receiptId) return NextResponse.json({ error: 'Missing receiptId' }, { status: 400 });
 
-        if (!receiptId) {
-            return NextResponse.json({ error: 'Missing receiptId' }, { status: 400 });
-        }
-
-        // 1. Get receipt from DB
         const receipt = await prisma.receipt.findUnique({ where: { id: receiptId } });
-        if (!receipt) {
-            return NextResponse.json({ error: 'Receipt not found' }, { status: 404 });
+        if (!receipt) return NextResponse.json({ error: 'Receipt not found' }, { status: 404 });
+
+        // Ensure we have access to Document AI
+        const docClient = getDocumentAIClient();
+        if (!docClient) {
+            return NextResponse.json({ error: 'Google Document AI is not configured on the server.' }, { status: 500 });
         }
 
-        // 2. Mocking Google Document AI Expense Parser Call
-        // Requires: @google-cloud/documentai, GOOGLE_APPLICATION_CREDENTIALS, DOCUMENT_AI_PROCESSOR_ID, etc.
-        /*
-          const client = new DocumentProcessorServiceClient();
-          const name = `projects/${ projectId }/locations/${ location }/processors/${ processorId }`;
-          // Fetch private blob image bytes here and pass to Google API
-          const requestPayload = { name, rawDocument: { content: imageBytes, mimeType: receipt.contentType } };
-          const [result] = await client.processDocument(requestPayload);
-          
-          // Parse Document AI Entities ...
-          const entities = result.document.entities;
-          let payee = null, amount = null, receiptDate = null;
-          // loop entities to assign values ...
-        */
+        const projectId = process.env.DOCUMENT_AI_PROJECT_ID;
+        const location = process.env.DOCUMENT_AI_LOCATION || 'us';
+        const processorId = process.env.DOCUMENT_AI_PROCESSOR_ID;
 
-        // Simulated Response for MVP Initial Scaffolding
-        const mockJsonOcrData = {
-            entities: [
-                { type: "supplier_name", mentionText: "サンプルマート" },
-                { type: "total_amount", mentionText: "1500" },
-                { type: "receipt_date", mentionText: "2026-04-03" },
-                { type: "currency", mentionText: "JPY" },
-                { type: "total_tax_amount", mentionText: "136" }
-            ],
-            text: "サンプルマート\n2026年4月3日\n合計 ¥1,500 (内消費税 ¥136)\nJPY"
+        if (!projectId || !processorId) {
+            return NextResponse.json({ error: 'DOCUMENT_AI_PROJECT_ID or DOCUMENT_AI_PROCESSOR_ID is missing.' }, { status: 500 });
+        }
+
+        // 1. Fetch image bytes from private Vercel Blob
+        const blobResponse = await fetch(receipt.imageUrl, {
+            headers: { Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}` }
+        });
+        if (!blobResponse.ok) throw new Error('Failed to fetch image from Blob Storage');
+        const arrayBuffer = await blobResponse.arrayBuffer();
+        const imageBytes = Buffer.from(arrayBuffer).toString('base64');
+        const mimeType = receipt.contentType || 'image/jpeg';
+
+        // 2. Call Google Document AI Expense Parser
+        const name = `projects/${projectId}/locations/${location}/processors/${processorId}`;
+        const requestPayload = {
+            name,
+            rawDocument: {
+                content: imageBytes,
+                mimeType: mimeType,
+            },
         };
 
-        // 3. Update DB with OCR Results
+        const [result] = await docClient.processDocument(requestPayload);
+        const document = result.document;
+        if (!document) throw new Error('No document returned from OCR');
+
+        // 3. Extract Fields from Expense Parser Output
+        // Expense parser returns standard entities like supplier_name, total_amount, receipt_date, currency, total_tax_amount
+        let payee = null, amount = null, receiptDate = null, currency = null, taxAmount = null;
+
+        if (document.entities) {
+            for (const entity of document.entities) {
+                if (!entity.type || !entity.mentionText) continue;
+                const text = entity.mentionText.trim();
+                switch (entity.type) {
+                    case 'supplier_name': payee = text; break;
+                    case 'total_amount': amount = parseInt(text.replace(/[^\d]/g, ''), 10) || null; break;
+                    case 'receipt_date':
+                        // Try formatting "2026-04-03" into Date
+                        const dt = new Date(text);
+                        if (!isNaN(dt.getTime())) receiptDate = dt;
+                        break;
+                    case 'currency': currency = text; break;
+                    case 'total_tax_amount': taxAmount = parseInt(text.replace(/[^\d]/g, ''), 10) || null; break;
+                }
+            }
+        }
+
+        // 4. Update DB
         const updatedReceipt = await prisma.receipt.update({
             where: { id: receiptId },
             data: {
-                payee: "サンプルマート",
-                amount: 1500,
-                currency: "JPY",
-                taxAmount: 136,
-                receiptDate: new Date("2026-04-03T00:00:00.000Z"),
-                rawOcrData: mockJsonOcrData,
-                ocrProvider: "google-document-ai-expense-parser-mock",
+                payee,
+                amount,
+                currency,
+                taxAmount,
+                receiptDate,
+                rawOcrData: document as any, // Save the entire raw JSON payload to Prisma Json column
+                ocrProvider: "google-document-ai-expense-parser",
                 ocrProcessedAt: new Date(),
                 status: "OCR_DONE"
             }
@@ -64,6 +111,16 @@ export async function POST(request: NextRequest) {
 
     } catch (error: any) {
         console.error('OCR Error:', error);
+
+        // Fallback status if OCR fails
+        const payload = await request.json().catch(() => ({}));
+        if (payload.receiptId) {
+            await prisma.receipt.update({
+                where: { id: payload.receiptId },
+                data: { status: 'NEEDS_REVIEW', reviewNote: error.message }
+            }).catch(() => { }); // ignore sub-fails
+        }
+
         return NextResponse.json({ error: error.message || 'OCR Processing Failed' }, { status: 500 });
     } finally {
         await prisma.$disconnect();

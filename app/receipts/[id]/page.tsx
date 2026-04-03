@@ -28,10 +28,9 @@ export default async function ReceiptReviewPage({ params }: { params: { id: stri
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Left: Original Image Preview */}
                 <div className="bg-slate-100 rounded-lg border border-slate-200 p-4 min-h-[500px] flex items-center justify-center relative overflow-hidden">
-                    {/* Note: In a real Private Blob setup, this URL would go through a proxy route like /api/receipts/image/[id] */}
                     {receipt.imageUrl ? (
                         <img
-                            src={receipt.imageUrl}
+                            src={`/api/receipts/image/${receipt.id}`}
                             alt="Receipt Original"
                             className="max-w-full max-h-[800px] object-contain shadow-sm"
                             loading="lazy"
