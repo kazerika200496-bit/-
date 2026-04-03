@@ -7,7 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "import:items": "ts-node scripts/import_items.ts",
+    "import:items:dry": "ts-node scripts/import_items.ts --dry-run",
+    "import:users": "ts-node scripts/import_users.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",

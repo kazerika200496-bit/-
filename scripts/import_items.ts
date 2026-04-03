@@ -8,6 +8,13 @@ const SPREADSHEET_URL = 'https://docs.google.com/spreadsheets/d/1EKOq27zIKamzGAu
 async function main() {
     const args = process.argv.slice(2);
     const isDryRun = args.includes('--dry-run');
+    const hasForce = args.includes('--force');
+
+    if (!isDryRun && !hasForce) {
+        console.error('⚠️ [GUARD] 本番書込を実行するには `--force` オプションが必須です。');
+        console.error('例: npm run import:items:force');
+        process.exit(1);
+    }
 
     console.log(`\n--- Start Safe Google Sheet Inventory Import ---`);
     console.log(`Target Database: ${process.env.DATABASE_URL ? 'Connected' : 'Missing DATABASE_URL'}`);

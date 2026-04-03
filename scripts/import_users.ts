@@ -6,6 +6,14 @@ import path from 'path';
 const prisma = new PrismaClient();
 
 async function main() {
+    const args = process.argv.slice(2);
+    const hasForce = args.includes('--force');
+
+    if (!hasForce) {
+        console.error('⚠️ [GUARD] 本番書込を実行するには `--force` オプションが必須です。');
+        process.exit(1);
+    }
+
     console.log('--- Start Safe Account Setup ---');
     console.log('Target Database:', process.env.DATABASE_URL?.split('@')[1] ?? 'Local');
 
@@ -39,12 +47,19 @@ async function main() {
         if (!storeName) continue;
 
         try {
-            // Upsert Location
-            const location = await prisma.location.upsert({
-                where: { name: storeName.trim() },
-                update: {},
-                create: { name: storeName.trim() }
+            // Find existing Location first since name isn't unique in schema
+            let location = await prisma.location.findFirst({
+                where: { name: storeName.trim() }
             });
+            if (!location) {
+                location = await prisma.location.create({
+                    data: {
+                        id: crypto.randomUUID(),
+                        name: storeName.trim(),
+                        type: '店舗'
+                    }
+                });
+            }
 
             // Upsert Store User
             const storePassword = crypto.randomBytes(4).toString('hex');
