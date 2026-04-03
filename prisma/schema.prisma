@@ -93,3 +93,15 @@ model VendorOrderLine {
   addedAt       DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 }
+
+model Receipt {
+  id            String    @id @default(cuid())
+  imageUrl      String    // アップロードされた画像のURL
+  payee         String?   // OCR抽出: 支払先（店名）
+  amount        Int?      // OCR抽出: 合計金額
+  receiptDate   DateTime? // OCR抽出: 領収日付
+  rawText       String?   // OCR抽出: 生テキスト（デバッグ・再抽出用）
+  status        String    @default("REVIEWING") // 'REVIEWING' | 'VERIFIED'
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
