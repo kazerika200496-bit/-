@@ -1,82 +1,84 @@
 import { PrismaClient } from '@prisma/client';
-import fs from 'fs';
-import path from 'path';
+import crypto from 'crypto';
 
-// Using local simple CSV parsing to avoid extra dependencies
 const prisma = new PrismaClient();
 
-async function main() {
-    console.log('--- Start Safe Master Item Import ---');
-    console.log('Target Database:', process.env.DATABASE_URL?.split('@')[1] ?? 'Local');
+const SPREADSHEET_URL = 'https://docs.google.com/spreadsheets/d/1EKOq27zIKamzGAuiv9QE4Dol4e1AQIabwTV6uRY_OZI/export?format=csv&gid=1470236949';
 
-    const csvPath = path.join(process.cwd(), 'master_items.csv');
-    if (!fs.existsSync(csvPath)) {
-        console.error('Error: master_items.csv found not found in root directory.');
+async function main() {
+    const args = process.argv.slice(2);
+    const isDryRun = args.includes('--dry-run');
+
+    console.log(`\n--- Start Safe Google Sheet Inventory Import ---`);
+    console.log(`Target Database: ${process.env.DATABASE_URL ? 'Connected' : 'Missing DATABASE_URL'}`);
+    console.log(`Mode: ${isDryRun ? 'DRY-RUN (No Data Written)' : 'LIVE EXECUTION'}`);
+
+    let csvText = '';
+    try {
+        const response = await fetch(SPREADSHEET_URL);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        csvText = await response.text();
+    } catch (e: any) {
+        console.error('Failed to fetch spreadsheet:', e.message);
         process.exit(1);
     }
 
-    const fileContent = fs.readFileSync(csvPath, 'utf-8');
-    const lines = fileContent.split(/\r?\n/).filter(line => line.trim().length > 0);
+    const lines = csvText.split(/\r?\n/).filter(line => line.trim().length > 0);
+    if (lines.length <= 1) return console.log('No data found in CSV. Exiting.');
 
-    if (lines.length <= 1) {
-        console.log('No data found in CSV (or only header). Exiting.');
-        return;
-    }
+    console.log(`Found ${lines.length - 1} records. Processing...`);
 
-    // Skip the header
-    const dataLines = lines.slice(1);
     let successCount = 0;
 
-    for (const line of dataLines) {
-        const [code, name, category, price, unit, supplierName] = line.split(',');
+    // Header format: 品目ID,最終カテゴリ,品目名,単位,有効フラグ,備考,表示名
+    for (let i = 1; i < lines.length; i++) {
+        // Splitting safely (assuming no complex quoted commas inside names based on earlier preview)
+        const columns = lines[i].split(',');
+        const itemId = columns[0]?.trim(); // Maps to `id` (e.g. I0001)
+        const category = columns[1]?.trim() || 'その他';
+        const name = columns[2]?.trim();
+        const unit = columns[3]?.trim() || '個';
+        const activeFlag = columns[4]?.trim().toUpperCase();
+        const displayName = columns[6]?.trim() || name;
 
-        if (!code || !name || !supplierName) {
-            console.warn(`Skipping invalid line: ${line}`);
-            continue;
-        }
+        if (!itemId || !name) continue;
+        if (activeFlag === 'FALSE') continue;
 
-        try {
-            // 1. Ensure supplier exists (Upsert)
-            const supplier = await prisma.supplier.upsert({
-                where: { name: supplierName.trim() },
-                update: {}, // No updates if exists
-                create: { name: supplierName.trim() }
-            });
-
-            // 2. Ensure item exists (Upsert)
-            await prisma.item.upsert({
-                where: { code: code.trim() },
-                update: {
-                    name: name.trim(),
-                    category: category.trim(),
-                    price: parseFloat(price) || 0,
-                    unit: unit.trim(),
-                    vendorId: supplier.id
-                },
-                create: {
-                    code: code.trim(),
-                    name: name.trim(),
-                    category: category.trim(),
-                    price: parseFloat(price) || 0,
-                    unit: unit.trim(),
-                    vendorId: supplier.id
-                }
-            });
+        if (isDryRun) {
+            console.log(`[DRY-RUN] Upsert -> ID: ${itemId}, Name: ${name}, Cat: ${category}`);
             successCount++;
-        } catch (error) {
-            console.error(`Failed to import item ${code}:`, error);
+        } else {
+            try {
+                await prisma.item.upsert({
+                    where: { id: itemId },
+                    update: {
+                        name: name,
+                        displayName: displayName,
+                        category: category,
+                        unit: unit,
+                        // Price is missing from the sheet, so we don't overwrite if it exists
+                    },
+                    create: {
+                        id: itemId,
+                        name: name,
+                        displayName: displayName,
+                        category: category,
+                        unit: unit,
+                        price: 0, // Fallback price
+                    }
+                });
+                successCount++;
+            } catch (err: any) {
+                console.error(`[ERROR] Failed on item ${itemId}:`, err.message);
+            }
         }
     }
 
-    console.log(`--- Import Complete ---`);
-    console.log(`Successfully upserted ${successCount} items.`);
+    console.log(`\n--- Import Complete ---`);
+    console.log(`Total processed successfully: ${successCount} items.`);
+    if (isDryRun) {
+        console.log(`\n[DRY-RUN] Verify complete. Run 'npm run import:items' without dry-run to push to DB.`);
+    }
 }
 
-main()
-    .catch(e => {
-        console.error(e);
-        process.exit(1);
-    })
-    .finally(async () => {
-        await prisma.$disconnect();
-    });
+main().catch(console.error).finally(() => prisma.$disconnect());
