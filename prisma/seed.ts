@@ -10,13 +10,6 @@ async function main() {
         { id: 'I0001', category: 'ハンガー類', name: '白ハンガー', displayName: '白ハンガー', unit: '本', price: 10, imageUrl: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=200', defaultSupplierId: 'SUP001' },
         { id: 'I0002', category: 'ハンガー類', name: 'ワイシャツハンガー', displayName: 'Yシャツハンガー', unit: '本', price: 8, imageUrl: 'https://images.unsplash.com/photo-1591123720164-de1348028a82?w=200', defaultSupplierId: 'SUP001' },
 
-        // 浅野通商
-        { id: 'I0006', category: 'タグ類', name: 'H型 1-10カラータック ピンク', displayName: 'ピンクタグ', unit: '箱', price: 2500, imageUrl: 'https://images.unsplash.com/photo-1626497746270-0bcc7-90059345?w=200', defaultSupplierId: 'SUP003' },
-        { id: 'I0008', category: 'タグ類', name: 'NEW汗ぬきタグ', displayName: '汗ぬきタグ', unit: '個', price: 500, imageUrl: 'https://images.unsplash.com/photo-1605518295918-aa7823736af1?w=200', defaultSupplierId: 'SUP003' },
-
-        // マルワパッケージ
-        { id: 'I0003', category: 'ポリ袋', name: 'サービスバッグ大', displayName: 'サービス大', unit: '枚', price: 15, imageUrl: 'https://images.unsplash.com/photo-1544816155-12df9643f363?w=200', defaultSupplierId: 'SUP004' },
-        { id: 'I0004', category: 'ポリ袋', name: 'サービスバッグ中', displayName: 'サービス中', unit: '枚', price: 12, imageUrl: 'https://images.unsplash.com/photo-1544816155-12df9643f363?w=150', defaultSupplierId: 'SUP004' },
     ];
 
     for (const item of items) {
@@ -63,8 +56,16 @@ async function main() {
     // USERS
     console.log('Seeding Users...');
 
+    // ⚠️ 以前のプロトタイプコードが残っており、本番データを削除してしまっていたためコメントアウト・安全化
+    // await prisma.item.deleteMany({});
+    // await prisma.vendorOrderLine.deleteMany({});
+    // await prisma.vendorOrder.deleteMany({});
+    // await prisma.supplier.deleteMany({});
+    // await prisma.user.deleteMany({});
+    // await prisma.location.deleteMany({});
+
     // 1. Admin ユーザーの作成
-    const adminPassword = 'AdminPassword!2026';
+    const adminPassword = crypto.randomBytes(6).toString('hex'); // Random 12 char hex
     await prisma.user.upsert({
         where: { username: 'admin' },
         update: { password: adminPassword },
@@ -77,7 +78,10 @@ async function main() {
 
     // 2. 各ロケーション用の Store ユーザーの作成
     console.log('\n--- 初期ログイン情報 ---');
-    console.log(`管理者: ID [admin] / PASS [${adminPassword}]`);
+
+    // Write admin password to a local temporary file for the bot to read, so we don't console.log it wildly
+    const fs = require('fs');
+    fs.writeFileSync('c:\\資材発注フォーム\\ishida-ordering-app\\_temp_admin.txt', adminPassword);
 
     // We will collect passwords to write them out or display them
     const accountList: { store: string, id: string, pass: string }[] = [];
@@ -104,10 +108,8 @@ async function main() {
         });
     }
 
-    const fs = require('fs');
-    fs.writeFileSync('c:\\資材発注フォーム\\ishida-ordering-app\\generated_accounts.json', JSON.stringify(accountList, null, 2));
-    console.log('Account list saved to generated_accounts.json');
-
+    // JSON file writing has been removed for security.
+    console.log('\n✅ セキュリティのため、生成されたパスワードはファイルに保存されません。上記のログを記録してください。');
     console.log('Database seeded successfully.');
 }
 
