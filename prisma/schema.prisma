@@ -37,6 +37,7 @@ model User {
   role       String    @default("store") // 'admin' | 'store'
   locationId String?   // 店舗ユーザーの場合は紐づくLocationのID
   location   Location? @relation(fields: [locationId], references: [id])
+  receipts   Receipt[] // 作成した領収書リレーション
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 }
@@ -94,14 +95,43 @@ model VendorOrderLine {
   updatedAt     DateTime    @updatedAt
 }
 
+enum ReceiptStatus {
+  UPLOADED
+  OCR_DONE
+  NEEDS_REVIEW
+  CONFIRMED
+  EXPORT_READY
+}
+
 model Receipt {
   id            String    @id @default(cuid())
-  imageUrl      String    // Vercel Blob (Private)画像のURL
+  
+  // Vercel Blob (Private) 画像関連
+  imageUrl      String    // ダウンロード/閲覧用URL (Private想定)
+  blobPathname  String?   // Vercel Blob 内部パス (削除・操作用)
+  contentType   String?   // 画像のMIME Type (例: image/jpeg)
+  fileName      String?   // 元ファイル名
+  fileSize      Int?      // ファイルサイズ(Bytes)
+
+  // OCR抽出関連
   payee         String?   // OCR抽出: 支払先（店名）
   amount        Int?      // OCR抽出: 合計金額
   receiptDate   DateTime? // OCR抽出: 領収日付
-  rawOcrData    String?   // OCR抽出: Document AI / Expense Parser の生JSON文字列
-  status        String    @default("uploaded") // uploaded | ocr_done | needs_review | confirmed | export_ready
+  currency      String?   // OCR抽出: 通貨 (例: JPY)
+  taxAmount     Int?      // OCR抽出: 消費税額
+  ocrProvider   String?   // OCRエンジン種別 (例: 'document-ai')
+  ocrProcessedAt DateTime?// OCR処理完了日時
+  rawOcrData    Json?     // OCR抽出: Document AI の生JSON
+  reviewNote    String?   // 確認時の修正メモや特記事項
+  memo          String?   // フリーメモ
+  paymentMethod String?   // 支払方法（現金、クレカ等）
+  accountCode   String?   // 借方勘定科目（消耗品費、交通費など）
+
+  // ステータスと追跡
+  status        ReceiptStatus @default(UPLOADED) // enum化
+  createdById   String?   // 作成者（アップロードしたユーザー）
+  createdBy     User?     @relation(fields: [createdById], references: [id])
+
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }

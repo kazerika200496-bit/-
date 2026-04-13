@@ -25,7 +25,9 @@ export async function middleware(request: NextRequest) {
         });
 
         // Check admin routes
-        if (path.startsWith('/admin') && payload.role !== 'admin') {
+        const isAdminRoute = path.startsWith('/admin') || path.startsWith('/receipts') || path.startsWith('/api/receipts');
+        if (isAdminRoute && payload.role !== 'admin') {
+            // Force redirect non-admins back to the store ordering dashboard
             return NextResponse.redirect(new URL('/', request.url));
         }
 
@@ -38,5 +40,6 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-    matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+    // Only bypass static assets and auth APIs; intercept all /api/receipts calls
+    matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
 };

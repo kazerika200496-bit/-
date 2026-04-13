@@ -13,6 +13,7 @@
     "import:users": "ts-node scripts/import_users.ts"
   },
   "dependencies": {
+    "@google-cloud/documentai": "^9.6.0",
     "@prisma/client": "^5.22.0",
     "@types/qrcode": "^1.5.6",
     "@vercel/blob": "^2.3.3",

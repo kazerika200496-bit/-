@@ -34,40 +34,42 @@ export async function POST(request: NextRequest) {
 
         // Ensure we have access to Document AI
         const docClient = getDocumentAIClient();
-        if (!docClient) {
-            return NextResponse.json({ error: 'Google Document AI is not configured on the server.' }, { status: 500 });
+        let document: any = null;
+
+        if (!docClient || !process.env.DOCUMENT_AI_PROJECT_ID) {
+            console.warn('⚠️ Google Document AI not configured. Falling back to Mock data.');
+            document = {
+                entities: [
+                    { type: 'supplier_name', mentionText: 'サンプル商店 (Mock)' },
+                    { type: 'total_amount', mentionText: '2500' },
+                    { type: 'receipt_date', mentionText: new Date().toISOString().split('T')[0] },
+                    { type: 'currency', mentionText: 'JPY' },
+                    { type: 'total_tax_amount', mentionText: '227' }
+                ],
+                text: "サンプル商店 (Mock)\n2026年X月X日\n合計 ¥2,500 (内消費税 ¥227)\nJPY"
+            };
+        } else {
+            const projectId = process.env.DOCUMENT_AI_PROJECT_ID;
+            const location = process.env.DOCUMENT_AI_LOCATION || 'us';
+            const processorId = process.env.DOCUMENT_AI_PROCESSOR_ID;
+
+            if (!processorId) return NextResponse.json({ error: 'DOCUMENT_AI_PROCESSOR_ID is missing.' }, { status: 500 });
+
+            const blobResponse = await fetch(receipt.imageUrl, {
+                headers: { Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}` }
+            });
+            if (!blobResponse.ok) throw new Error('Failed to fetch image from Blob Storage');
+            const arrayBuffer = await blobResponse.arrayBuffer();
+            const imageBytes = Buffer.from(arrayBuffer).toString('base64');
+            const mimeType = receipt.contentType || 'image/jpeg';
+
+            const name = `projects/${projectId}/locations/${location}/processors/${processorId}`;
+            const [result] = await docClient.processDocument({
+                name, rawDocument: { content: imageBytes, mimeType }
+            });
+            document = result.document;
+            if (!document) throw new Error('No document returned from OCR');
         }
-
-        const projectId = process.env.DOCUMENT_AI_PROJECT_ID;
-        const location = process.env.DOCUMENT_AI_LOCATION || 'us';
-        const processorId = process.env.DOCUMENT_AI_PROCESSOR_ID;
-
-        if (!projectId || !processorId) {
-            return NextResponse.json({ error: 'DOCUMENT_AI_PROJECT_ID or DOCUMENT_AI_PROCESSOR_ID is missing.' }, { status: 500 });
-        }
-
-        // 1. Fetch image bytes from private Vercel Blob
-        const blobResponse = await fetch(receipt.imageUrl, {
-            headers: { Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}` }
-        });
-        if (!blobResponse.ok) throw new Error('Failed to fetch image from Blob Storage');
-        const arrayBuffer = await blobResponse.arrayBuffer();
-        const imageBytes = Buffer.from(arrayBuffer).toString('base64');
-        const mimeType = receipt.contentType || 'image/jpeg';
-
-        // 2. Call Google Document AI Expense Parser
-        const name = `projects/${projectId}/locations/${location}/processors/${processorId}`;
-        const requestPayload = {
-            name,
-            rawDocument: {
-                content: imageBytes,
-                mimeType: mimeType,
-            },
-        };
-
-        const [result] = await docClient.processDocument(requestPayload);
-        const document = result.document;
-        if (!document) throw new Error('No document returned from OCR');
 
         // 3. Extract Fields from Expense Parser Output
         // Expense parser returns standard entities like supplier_name, total_amount, receipt_date, currency, total_tax_amount

@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import ReceiptForm from './ReceiptForm';
 
 const prisma = new PrismaClient();
 
@@ -44,63 +45,7 @@ export default async function ReceiptReviewPage({ params }: { params: { id: stri
                 <div className="bg-white rounded-lg border border-slate-200 p-6 shadow-sm">
                     <h2 className="text-lg font-bold border-b pb-2 mb-6">OCR抽出データ</h2>
 
-                    <form className="space-y-5">
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">支払先 (店名)</label>
-                            <input
-                                type="text"
-                                defaultValue={receipt.payee || ''}
-                                className="w-full border border-slate-300 rounded p-2 focus:ring-2 focus:ring-blue-500"
-                            />
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">日付</label>
-                                <input
-                                    type="date"
-                                    defaultValue={receipt.receiptDate ? new Date(receipt.receiptDate).toISOString().split('T')[0] : ''}
-                                    className="w-full border border-slate-300 rounded p-2 focus:ring-2 focus:ring-blue-500"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">通貨</label>
-                                <input
-                                    type="text"
-                                    defaultValue={receipt.currency || 'JPY'}
-                                    className="w-full border border-slate-300 rounded p-2"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">合計金額</label>
-                                <input
-                                    type="number"
-                                    defaultValue={receipt.amount || ''}
-                                    className="w-full border border-slate-300 rounded p-2 font-mono text-lg"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">内消費税額等</label>
-                                <input
-                                    type="number"
-                                    defaultValue={receipt.taxAmount || ''}
-                                    className="w-full border border-slate-300 rounded p-2 font-mono"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="pt-6 mt-6 border-t flex justify-end gap-3">
-                            <button type="button" className="px-4 py-2 text-slate-600 bg-slate-100 hover:bg-slate-200 rounded font-medium">
-                                破棄する
-                            </button>
-                            <button type="button" className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-medium shadow-sm">
-                                確定して保存 (VERIFY)
-                            </button>
-                        </div>
-                    </form>
+                    <ReceiptForm receipt={receipt} />
 
                     {/* Raw JSON Debug (Collapsible in real app) */}
                     <div className="mt-12">

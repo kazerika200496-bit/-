@@ -4,6 +4,12 @@ import * as crypto from 'crypto';
 const prisma = new PrismaClient();
 
 async function main() {
+    // 【安全対策】本番環境でのデータ破壊を防ぐためガードを設けます。
+    if (process.env.NODE_ENV === 'production') {
+        console.warn('⚠️ Warning: Seeding is disabled in production to prevent data loss.');
+        return;
+    }
+
     // ITEMS
     const items = [
         // 共和産業
@@ -55,14 +61,6 @@ async function main() {
 
     // USERS
     console.log('Seeding Users...');
-
-    // ⚠️ 以前のプロトタイプコードが残っており、本番データを削除してしまっていたためコメントアウト・安全化
-    // await prisma.item.deleteMany({});
-    // await prisma.vendorOrderLine.deleteMany({});
-    // await prisma.vendorOrder.deleteMany({});
-    // await prisma.supplier.deleteMany({});
-    // await prisma.user.deleteMany({});
-    // await prisma.location.deleteMany({});
 
     // 1. Admin ユーザーの作成
     const adminPassword = crypto.randomBytes(6).toString('hex'); // Random 12 char hex
