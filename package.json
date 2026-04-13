@@ -2,6 +2,9 @@
   "name": "ishida-ordering-app",
   "version": "0.1.0",
   "private": true,
+  "overrides": {
+    "undici": "5.28.4"
+  },
   "scripts": {
     "dev": "next dev -H 0.0.0.0 -p 3001",
     "build": "next build",
