@@ -60,6 +60,10 @@ export async function POST(request: Request) {
     } catch (error: any) {
         console.error('[LOGIN_API: FATAL] Uncaught Login error:', error.message || error);
         console.error('[LOGIN_API: FATAL STACK]', error.stack || 'No stack trace');
-        return NextResponse.json({ error: 'Internal server error', details: error.message }, { status: 500 });
+        return NextResponse.json({
+            error: 'Internal server error: ' + String(error.message || error),
+            stack: String(error.stack),
+            name: String(error.name)
+        }, { status: 500 });
     }
 }
