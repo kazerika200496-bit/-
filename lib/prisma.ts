@@ -4,7 +4,17 @@ const globalForPrisma = global as unknown as { prisma: PrismaClient | undefined 
 
 function getClient(): PrismaClient {
     if (!globalForPrisma.prisma) {
+        let dbUrl = process.env.DATABASE_URL;
+
+        // NeonのプーラーURLで、pgbouncer=trueが未設定の場合は自動付与
+        if (dbUrl && dbUrl.includes('pooler.ap-southeast-1.aws.neon.tech') && !dbUrl.includes('pgbouncer=true')) {
+            const separator = dbUrl.includes('?') ? '&' : '?';
+            dbUrl = `${dbUrl}${separator}pgbouncer=true`;
+            console.log('[Prisma] Automatically appended pgbouncer=true to Neon pooler URL');
+        }
+
         globalForPrisma.prisma = new PrismaClient({
+            datasourceUrl: dbUrl,
             log: ['query', 'error', 'warn'],
         });
     }
