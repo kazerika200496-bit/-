@@ -139,7 +139,27 @@ export default function Home() {
 
     const availableDestinations = useMemo(() => {
         if (!sourceId) return [];
-        const destIds = ROUTE_MAP[sourceId] || [];
+        const sourceLoc = locations.find(l => l.id === sourceId);
+        let destIds: string[] = [];
+
+        if (sourceLoc) {
+            if (sourceLoc.type === '店舗') {
+                // エブリイ駅家店は駅家工場(F002)、それ以外は本社工場(F001)
+                const factoryId = sourceLoc.name.includes('駅家店') 
+                    ? locations.find(l => l.name.includes('駅家工場'))?.id || 'F002'
+                    : locations.find(l => l.name.includes('本社工場'))?.id || 'F001';
+                destIds = [factoryId];
+            } else if (sourceLoc.type === '工場') {
+                // 工場の場合は、全業者 ＋ 別の工場
+                destIds = suppliers.map(s => s.id);
+                // 駅家工場の時は本社工場にも発注できる
+                if (sourceLoc.name.includes('駅家工場')) {
+                    const hqId = locations.find(l => l.name.includes('本社工場'))?.id;
+                    if (hqId) destIds.push(hqId);
+                }
+            }
+        }
+
         const combined = [
             ...locations.filter(l => destIds.includes(l.id)),
             ...suppliers.filter(s => destIds.includes(s.id))
@@ -314,30 +334,22 @@ export default function Home() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col pb-32">
-            <nav className="bg-white shadow">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between h-16">
-                        <div className="flex flex-col justify-center">
-                            <span className="text-xl font-bold text-gray-800">資材発注フォーム</span>
-                            <span className="text-xs text-gray-500">v1.1</span>
-                        </div>
-                        <div className="flex items-center space-x-4">
-                            <Link href="/history" className="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                                発注履歴
-                            </Link>
-                            {currentUser?.role === 'admin' && (
-                                <Link href="/vendor-orders" className="text-purple-600 hover:text-purple-800 text-sm font-medium">
-                                    管理画面
-                                </Link>
-                            )}
-                            <button onClick={handleLogout} className="text-gray-500 hover:text-gray-700 text-sm">
-                                ログアウト
-                            </button>
-                        </div>
+        <div style={{ backgroundColor: '#f0f2f5', minHeight: '100vh', paddingBottom: '100px' }}>
+            <div className="container">
+                <header>
+                    <div className="header-title">
+                        資材発注フォーム <span style={{fontSize: '12px', fontWeight: 'normal'}}>v1.1</span>
                     </div>
-                </div>
-            </nav>
+                    <nav>
+                        <Link href="/history" className="nav-link">発注履歴</Link>
+                        {currentUser?.role === 'admin' && (
+                            <Link href="/vendor-orders" className="nav-link-important">管理画面</Link>
+                        )}
+                        <button onClick={handleLogout} className="nav-link" style={{background: 'none', border: 'none', cursor: 'pointer', outline: 'none'}}>
+                            ログアウト
+                        </button>
+                    </nav>
+                </header>
 
             {/* Mobile QR Modal */}
             {showMobileModal && (
@@ -394,12 +406,12 @@ export default function Home() {
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '15px' }}>
                             <div>
                                 <label style={{ fontSize: '12px', color: '#666', fontWeight: 'bold' }}>発注元</label>
-                                <select
-                                    value={sourceId}
-                                    onChange={(e) => setSourceId(e.target.value)}
-                                    disabled={isStoreRole}
-                                    className={`mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md ${isStoreRole ? 'bg-gray-100 cursor-not-allowed' : ''}`}
-                                >
+                                    <select
+                                        value={sourceId}
+                                        onChange={(e) => setSourceId(e.target.value)}
+                                        disabled={isStoreRole}
+                                        style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #ddd', marginTop: '4px', fontSize: '14px', backgroundColor: isStoreRole ? '#f5f5f5' : '#fff', cursor: isStoreRole ? 'not-allowed' : 'auto' }}
+                                    >
                                     <option value="">発注元を選択してください</option>
                                     {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
                                 </select>
@@ -523,7 +535,7 @@ export default function Home() {
                                         </div>
                                     </div>
 
-                                    <div className="mt-3 flex items-center justify-between">
+                                    <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                         <button
                                             className="btn-add"
                                             onClick={() => addToCart(item)}
@@ -541,13 +553,13 @@ export default function Home() {
                                         >🛒 追加する</button>
                                         {/* 重複発注警告 */}
                                         {sourceId && recentConfirmations.some(l => l.itemId === item.id && l.locationId === sourceId) && (
-                                            <div className="mt-2 text-xs text-red-600 font-bold bg-red-50 p-1 rounded inline-block">
+                                            <div style={{ marginTop: '8px', fontSize: '12px', color: '#d93025', fontWeight: 'bold', backgroundColor: '#fce8e6', padding: '4px 8px', borderRadius: '4px', display: 'inline-block' }}>
                                                 ⚠️ 直近(14日以内)に発注済
                                             </div>
                                         )}
                                     </div>
                                     {!isStoreRole && (
-                                        <div className="mt-2 text-sm text-gray-900 border-t pt-2">
+                                        <div style={{ marginTop: '8px', fontSize: '14px', color: '#333', borderTop: '1px solid #eee', paddingTop: '8px' }}>
                                             単価: {item.price === null ? '-' : `${item.price}円`}
                                         </div>
                                     )}
@@ -666,6 +678,8 @@ export default function Home() {
                 </div>
             </div>
 
+            </div> {/* End container */}
+
             {/* Mobile View Adjustment (floating footer) */}
             <div className="mobile-floating-footer">
                 <div onClick={() => {
@@ -694,19 +708,21 @@ export default function Home() {
             </div>
 
             {/* Debug Footer */}
-            <div className="card" style={{ marginTop: '40px', fontSize: '12px', color: '#666', backgroundColor: '#fdf6e3' }}>
-                <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>🔍 診断情報</div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '5px 15px' }}>
-                    <span>Domain:</span> <span>{typeof window !== 'undefined' ? window.location.host : 'N/A'}</span>
-                    <span>Sync:</span> <span>{localStorage.getItem('master_items') ? '✅ OK' : '⚠️ Default'}</span>
-                </div>
-                <hr style={{ margin: '10px 0', border: 'none', borderTop: '1px solid #ddd' }} />
-                <div style={{ display: 'flex', gap: '15px' }}>
-                    <button onClick={() => window.location.reload()} style={{ cursor: 'pointer', background: 'none', border: '1px solid #999', padding: '4px 8px', borderRadius: '4px', fontSize: '11px' }}>🔄 リロード</button>
-                    <button onClick={() => {
-                        localStorage.clear();
-                        window.location.reload();
-                    }} style={{ cursor: 'pointer', color: '#d93025', background: 'none', border: '1px solid #d93025', padding: '4px 8px', borderRadius: '4px', fontSize: '11px' }}>🗑️ リセット</button>
+            <div className="container" style={{ paddingTop: '0' }}>
+                <div className="card" style={{ marginTop: '40px', fontSize: '12px', color: '#666', backgroundColor: '#fdf6e3' }}>
+                    <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>🔍 診断情報</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '5px 15px' }}>
+                        <span>Domain:</span> <span>{typeof window !== 'undefined' ? window.location.host : 'N/A'}</span>
+                        <span>Sync:</span> <span>{localStorage.getItem('master_items') ? '✅ OK' : '⚠️ Default'}</span>
+                    </div>
+                    <hr style={{ margin: '10px 0', border: 'none', borderTop: '1px solid #ddd' }} />
+                    <div style={{ display: 'flex', gap: '15px' }}>
+                        <button onClick={() => window.location.reload()} style={{ cursor: 'pointer', background: 'none', border: '1px solid #999', padding: '4px 8px', borderRadius: '4px', fontSize: '11px' }}>🔄 リロード</button>
+                        <button onClick={() => {
+                            localStorage.clear();
+                            window.location.reload();
+                        }} style={{ cursor: 'pointer', color: '#d93025', background: 'none', border: '1px solid #d93025', padding: '4px 8px', borderRadius: '4px', fontSize: '11px' }}>🗑️ リセット</button>
+                    </div>
                 </div>
             </div>
         </div>
