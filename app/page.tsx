@@ -268,9 +268,9 @@ export default function Home() {
         let vendorOrderId: string | null = null;
 
         try {
-            // サーバー処理 (業者向け consolidated list)
+            // 全ての宛先（業者・工場）への発注をAPIでサーバーに送信する
             const dest = availableDestinations.find(d => d.id === destinationId);
-            if (dest && (dest as any).type === '業者') {
+            if (dest) {
                 for (const item of cart) {
                     const res = await fetch('/api/vendor-orders', {
                         method: 'POST',
@@ -281,9 +281,10 @@ export default function Home() {
                             itemName: item.itemName,
                             qty: item.quantity,
                             unit: item.unit,
-                            price: item.price,
+                            price: item.price || 0,
                             requestedBy: requesterName,
-                            locationId: sourceId
+                            locationId: sourceId,
+                            note: remarks
                         })
                     });
                     const data = await res.json();
@@ -652,10 +653,12 @@ export default function Home() {
                         </div>
 
                         <div style={{ padding: '20px', borderTop: '1px solid #f0f0f0', backgroundColor: '#fff' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px', fontSize: '20px', fontWeight: 'bold' }}>
-                                <span>合計</span>
-                                <span>¥{totalAmount.toLocaleString()}</span>
-                            </div>
+                            {!isStoreRole && (
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px', fontSize: '20px', fontWeight: 'bold' }}>
+                                    <span>合計</span>
+                                    <span>¥{totalAmount.toLocaleString()}</span>
+                                </div>
+                            )}
 
                             <textarea
                                 placeholder="自由入力備考（特急希望など）"
@@ -696,8 +699,10 @@ export default function Home() {
                     const cartPanel = document.querySelector('.right-panel');
                     if (cartPanel) cartPanel.scrollIntoView({ behavior: 'smooth' });
                 }}>
-                    <div style={{ fontSize: '12px', color: '#666' }}>合計 ({cart.length}点)</div>
-                    <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#1a73e8' }}>¥{totalAmount.toLocaleString()}</div>
+                    <div style={{ fontSize: '12px', color: '#666' }}>選択中の商品 ({cart.length}点)</div>
+                    {!isStoreRole && (
+                        <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#1a73e8' }}>¥{totalAmount.toLocaleString()}</div>
+                    )}
                 </div>
                 <button
                     onClick={handleSubmit}

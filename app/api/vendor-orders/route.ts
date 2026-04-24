@@ -155,7 +155,7 @@ export async function POST(request: Request) {
                 itemName,
                 qty,
                 unit,
-                price,
+                price: price || 0,
                 note,
                 requestedBy,
                 locationId,
