@@ -145,17 +145,14 @@ export default function Home() {
         if (sourceLoc) {
             if (sourceLoc.type === '店舗') {
                 // エブリイ駅家店は駅家工場(F002)、それ以外は本社工場(F001)
-                const factoryId = sourceLoc.name.includes('駅家店') 
-                    ? locations.find(l => l.name.includes('駅家工場'))?.id || 'F002'
-                    : locations.find(l => l.name.includes('本社工場'))?.id || 'F001';
+                const factoryId = sourceLoc.name.includes('駅家店') ? 'F002' : 'F001';
                 destIds = [factoryId];
             } else if (sourceLoc.type === '工場') {
                 // 工場の場合は、全業者 ＋ 別の工場
                 destIds = suppliers.map(s => s.id);
                 // 駅家工場の時は本社工場にも発注できる
                 if (sourceLoc.name.includes('駅家工場')) {
-                    const hqId = locations.find(l => l.name.includes('本社工場'))?.id;
-                    if (hqId) destIds.push(hqId);
+                    destIds.push('F001');
                 }
             }
         }
