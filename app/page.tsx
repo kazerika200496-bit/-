@@ -334,7 +334,7 @@ export default function Home() {
     };
 
     return (
-        <div style={{ backgroundColor: '#f0f2f5', minHeight: '100vh', paddingBottom: '100px' }}>
+        <div style={{ backgroundColor: '#f0f2f5', minHeight: '100vh', paddingBottom: '100px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <div className="container">
                 <header>
                     <div className="header-title">
