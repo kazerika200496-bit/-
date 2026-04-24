@@ -288,6 +288,10 @@ export default function Home() {
                         })
                     });
                     const data = await res.json();
+                    if (data.error) {
+                        alert(`エラーが発生しました: ${data.error}`);
+                        return; // Stop submission
+                    }
                     if (data.orderId) {
                         vendorOrderId = data.orderId; // VORD-... を取得
                     }

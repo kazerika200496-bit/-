@@ -164,9 +164,9 @@ export async function POST(request: Request) {
         });
 
         return NextResponse.json({ success: true, orderId: order.id, lineId: newLine.id });
-    } catch (error) {
+    } catch (error: any) {
         console.error(error);
-        return NextResponse.json({ error: 'Failed to update order' }, { status: 500 });
+        return NextResponse.json({ error: error.message || 'Failed to update order' }, { status: 500 });
     }
 }
 
