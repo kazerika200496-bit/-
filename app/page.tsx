@@ -341,6 +341,16 @@ export default function Home() {
                         資材発注フォーム <span style={{fontSize: '12px', fontWeight: 'normal'}}>v1.1</span>
                     </div>
                     <nav>
+                        <div className="header-requester">
+                            <span className="header-requester-label">発注者名</span>
+                            <input 
+                                type="text" 
+                                className="header-requester-input" 
+                                value={requesterName}
+                                onChange={(e) => setRequesterName(e.target.value)}
+                                placeholder="担当者名"
+                            />
+                        </div>
                         <Link href="/history" className="nav-link">発注履歴</Link>
                         {currentUser?.role === 'admin' && (
                             <Link href="/vendor-orders" className="nav-link-important">管理画面</Link>
