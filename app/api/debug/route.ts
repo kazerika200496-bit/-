@@ -10,7 +10,12 @@ export async function GET() {
         
         const lines = await prisma.vendorOrderLine.findMany({
             orderBy: { id: 'desc' },
-            take: 5
+            take: 10
+        });
+
+        const orders = await prisma.vendorOrder.findMany({
+            orderBy: { createdAt: 'desc' },
+            take: 10
         });
 
         const users = await prisma.user.findMany({
@@ -20,6 +25,7 @@ export async function GET() {
 
         return NextResponse.json({
             session,
+            latestOrders: orders,
             latestLines: lines,
             sampleStoreUsers: users.map(u => ({ username: u.username, locationId: u.locationId }))
         });
