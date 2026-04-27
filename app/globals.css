@@ -87,13 +87,12 @@ nav {
 
 .item-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    /* Larger cards for high res */
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 16px;
-    max-height: calc(100vh - 280px);
-    /* Taller grid area */
+    max-height: calc(100vh - 300px);
     overflow-y: auto;
-    padding: 4px;
+    padding: 10px;
+    padding-bottom: 30px; /* Prevent bottom cutoff */
 }
 
 .mobile-floating-footer {

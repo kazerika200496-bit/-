@@ -55,18 +55,25 @@ export async function GET(request: Request) {
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const isStore = session.role === 'store';
-    const storeLocationId = session.locationId;
+    const storeLocationId = session.locationId as string;
+    const isFactory = storeLocationId === 'F001' || storeLocationId === 'F002';
 
     try {
         const orders = await prisma.vendorOrder.findMany({
             where: {
                 ...(vendorId && { vendorId }),
                 ...(status && { status }),
-                ...(isStore && storeLocationId ? { lines: { some: { locationId: storeLocationId } } } : {}),
+                ...(isStore && !isFactory ? { lines: { some: { locationId: storeLocationId } } } : {}),
+                ...(isStore && isFactory ? {
+                    OR: [
+                        { vendorId: storeLocationId }, // 工場が受けた発注
+                        { lines: { some: { locationId: storeLocationId } } } // 工場自身が出した発注
+                    ]
+                } : {})
             },
             include: {
                 lines: {
-                    where: isStore && storeLocationId ? { locationId: storeLocationId } : undefined,
+                    where: (isStore && !isFactory) && storeLocationId ? { locationId: storeLocationId } : undefined,
                     include: {
                         item: true,
                     },
