@@ -23,7 +23,6 @@ export default function LoginPage() {
             });
 
             if (res.ok) {
-                // Force a hard refresh to update server components and middleware state
                 window.location.href = '/';
             } else {
                 const data = await res.json();
@@ -37,63 +36,130 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-            <div className="sm:mx-auto sm:w-full sm:max-w-md">
-                <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-                    資材発注システム ログイン
-                </h2>
-            </div>
+        <div style={{
+            minHeight: '100vh',
+            backgroundColor: '#f0f2f5',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            alignItems: 'center',
+            padding: '20px',
+            fontFamily: '"Inter", "Noto Sans JP", sans-serif'
+        }}>
+            <div style={{
+                width: '100%',
+                maxWidth: '440px',
+                backgroundColor: '#fff',
+                borderRadius: '12px',
+                boxShadow: '0 8px 30px rgba(0, 0, 0, 0.1)',
+                overflow: 'hidden'
+            }}>
+                {/* Header Area */}
+                <div style={{
+                    backgroundColor: '#1a73e8',
+                    padding: '30px 20px',
+                    textAlign: 'center',
+                    color: '#fff'
+                }}>
+                    <h1 style={{ margin: 0, fontSize: '22px', fontWeight: 'bold' }}>
+                        いしだクリーニング<br />資材発注システム
+                    </h1>
+                    <p style={{ margin: '10px 0 0 0', fontSize: '14px', opacity: 0.9 }}>
+                        店舗・工場アカウントでログインしてください
+                    </p>
+                </div>
 
-            <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-                <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-                    <form className="space-y-6" onSubmit={handleLogin}>
+                {/* Form Area */}
+                <div style={{ padding: '30px 40px' }}>
+                    <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">
+                            <label style={{ display: 'block', fontSize: '14px', fontWeight: 'bold', color: '#444', marginBottom: '8px' }}>
                                 ユーザーID (店舗名など)
                             </label>
-                            <div className="mt-1">
-                                <input
-                                    type="text"
-                                    required
-                                    value={username}
-                                    onChange={(e) => setUsername(e.target.value)}
-                                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                />
-                            </div>
+                            <input
+                                type="text"
+                                required
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value)}
+                                style={{
+                                    width: '100%',
+                                    padding: '14px',
+                                    borderRadius: '8px',
+                                    border: '1px solid #ccc',
+                                    fontSize: '16px',
+                                    boxSizing: 'border-box',
+                                    outline: 'none',
+                                    transition: 'border-color 0.2s'
+                                }}
+                                onFocus={(e) => e.target.style.borderColor = '#1a73e8'}
+                                onBlur={(e) => e.target.style.borderColor = '#ccc'}
+                            />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">
+                            <label style={{ display: 'block', fontSize: '14px', fontWeight: 'bold', color: '#444', marginBottom: '8px' }}>
                                 パスワード
                             </label>
-                            <div className="mt-1">
-                                <input
-                                    type="password"
-                                    required
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                />
-                            </div>
+                            <input
+                                type="password"
+                                required
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                style={{
+                                    width: '100%',
+                                    padding: '14px',
+                                    borderRadius: '8px',
+                                    border: '1px solid #ccc',
+                                    fontSize: '16px',
+                                    boxSizing: 'border-box',
+                                    outline: 'none',
+                                    transition: 'border-color 0.2s'
+                                }}
+                                onFocus={(e) => e.target.style.borderColor = '#1a73e8'}
+                                onBlur={(e) => e.target.style.borderColor = '#ccc'}
+                            />
                         </div>
 
                         {error && (
-                            <div className="text-red-600 text-sm bg-red-50 p-2 rounded">
+                            <div style={{
+                                backgroundColor: '#fce8e6',
+                                color: '#d93025',
+                                padding: '12px',
+                                borderRadius: '8px',
+                                fontSize: '14px',
+                                textAlign: 'center',
+                                fontWeight: 'bold'
+                            }}>
                                 {error}
                             </div>
                         )}
 
-                        <div>
-                            <button
-                                type="submit"
-                                disabled={loading}
-                                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-                            >
-                                {loading ? 'ログイン処理中...' : 'ログイン'}
-                            </button>
-                        </div>
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            style={{
+                                marginTop: '10px',
+                                width: '100%',
+                                padding: '16px',
+                                backgroundColor: loading ? '#a0c3ff' : '#1a73e8',
+                                color: '#fff',
+                                border: 'none',
+                                borderRadius: '8px',
+                                fontSize: '16px',
+                                fontWeight: 'bold',
+                                cursor: loading ? 'not-allowed' : 'pointer',
+                                transition: 'background-color 0.2s',
+                                boxShadow: '0 2px 4px rgba(26, 115, 232, 0.3)'
+                            }}
+                        >
+                            {loading ? 'ログイン処理中...' : 'ログイン'}
+                        </button>
                     </form>
                 </div>
+            </div>
+            
+            <div style={{ marginTop: '30px', fontSize: '12px', color: '#888' }}>
+                &copy; Ishida Cleaning
             </div>
         </div>
     );
