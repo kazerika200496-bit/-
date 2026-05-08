@@ -4,16 +4,23 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 const FAVORITE_ACCOUNTS = [
-    '消耗品費',
-    '雑費',
-    '通信費',
-    '旅費交通費',
-    '会議費',
-    '接待交際費',
-    '水道光熱費',
-    '修繕費',
-    '車両費',
-    '支払手数料'
+    '109 売掛金',
+    '300 支払手形',
+    '306 預り金',
+    '204 車両運搬具',
+    '226 敷金',
+    '602 商品仕入',
+    '703 法定福利費',
+    '704 福利厚生費',
+    '735 荷造運賃',
+    '739 保険料',
+    '742 租税公課',
+    '743 消耗品費',
+    '744 事務消耗品費',
+    '750 調査研究費',
+    '759 雑費',
+    '801 受取利息',
+    '804 雑収入'
 ];
 
 const TAX_CATEGORIES = [
@@ -38,7 +45,13 @@ export default function ReceiptForm({ receipt }: { receipt: any }) {
     
     // New Fields
     const [slipNo, setSlipNo] = useState(receipt.slipNo || '');
-    const [accountCode, setAccountCode] = useState(receipt.accountCode || '');
+    
+    // Account Field (Code + Name combined for UI)
+    const initialAccount = receipt.accountCode 
+        ? (receipt.accountName ? `${receipt.accountCode} ${receipt.accountName}` : receipt.accountCode) 
+        : (receipt.accountName || '');
+    const [accountInput, setAccountInput] = useState(initialAccount);
+
     const [subAccount, setSubAccount] = useState(receipt.subAccount || '');
     const [description, setDescription] = useState(receipt.description || '');
     const [taxCategory, setTaxCategory] = useState(receipt.taxCategory || '');
@@ -56,6 +69,16 @@ export default function ReceiptForm({ receipt }: { receipt: any }) {
         }
 
         setIsSubmitting(true);
+
+        // Parse Account Input
+        let submitCode = '';
+        let submitName = accountInput.trim();
+        const match = accountInput.trim().match(/^(\d+)\s+(.+)$/);
+        if (match) {
+            submitCode = match[1];
+            submitName = match[2];
+        }
+
         try {
             const res = await fetch('/api/receipts/confirm', {
                 method: 'POST',
@@ -67,7 +90,8 @@ export default function ReceiptForm({ receipt }: { receipt: any }) {
                     payee,
                     amount,
                     taxAmount,
-                    accountCode,
+                    accountCode: submitCode,
+                    accountName: submitName,
                     subAccount,
                     description,
                     taxCategory,
@@ -134,8 +158,8 @@ export default function ReceiptForm({ receipt }: { receipt: any }) {
                     <label className="block text-sm font-bold text-slate-700 mb-1">勘定科目</label>
                     <input
                         list="accounts"
-                        value={accountCode}
-                        onChange={(e) => setAccountCode(e.target.value)}
+                        value={accountInput}
+                        onChange={(e) => setAccountInput(e.target.value)}
                         className="w-full border border-slate-300 rounded p-2 focus:ring-2 focus:ring-blue-500"
                         placeholder="入力して検索..."
                     />

@@ -125,10 +125,11 @@ model Receipt {
   reviewNote    String?   // 確認時の修正メモや特記事項
   memo          String?   // フリーメモ
   paymentMethod String?   // 支払方法（現金、クレカ等）
-  accountCode   String?   // 借方勘定科目（消耗品費、交通費など）
 
   // 新規追加フィールド（経理用）
   slipNo        String?   // 伝票No.
+  accountCode   String?   // 科目コード (例: '743')
+  accountName   String?   // 科目名 (例: '消耗品費')
   subAccount    String?   // 補助科目
   description   String?   // 摘要
   taxCategory   String?   // 税区分

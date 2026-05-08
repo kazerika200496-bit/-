@@ -38,6 +38,7 @@ export async function POST(request: NextRequest) {
         const headers = [
             '日付',
             '伝票No.',
+            '勘定科目コード',
             '勘定科目',
             '補助科目',
             '支払い先',
@@ -52,7 +53,8 @@ export async function POST(request: NextRequest) {
         const rows = receipts.map((r: any) => {
             const dateStr = r.receiptDate ? new Date(r.receiptDate).toISOString().split('T')[0] : '';
             const slipNo = r.slipNo || '';
-            const account = r.accountCode || '';
+            const accountCode = r.accountCode || '';
+            const accountName = r.accountName || '';
             const subAccount = r.subAccount || '';
             const payee = r.payee || '';
             const description = r.description || '';
@@ -67,7 +69,8 @@ export async function POST(request: NextRequest) {
             return [
                 dateStr,
                 escapeCsv(slipNo),
-                escapeCsv(account),
+                escapeCsv(accountCode),
+                escapeCsv(accountName),
                 escapeCsv(subAccount),
                 escapeCsv(payee),
                 escapeCsv(description),

@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 export async function POST(request: NextRequest) {
     try {
         const data = await request.json();
-        const { receiptId, slipNo, receiptDate, payee, amount, taxAmount, accountCode, subAccount, description, taxCategory, paymentMethod, memo } = data;
+        const { receiptId, slipNo, receiptDate, payee, amount, taxAmount, accountCode, accountName, subAccount, description, taxCategory, paymentMethod, memo } = data;
 
         if (!receiptId) return NextResponse.json({ error: 'Missing receiptId' }, { status: 400 });
 
@@ -19,6 +19,7 @@ export async function POST(request: NextRequest) {
                 amount: amount ? parseInt(amount, 10) : null,
                 taxAmount: taxAmount ? parseInt(taxAmount, 10) : null,
                 accountCode,
+                accountName,
                 subAccount,
                 description,
                 taxCategory,
