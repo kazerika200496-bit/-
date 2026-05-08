@@ -20,8 +20,7 @@ export default function ReceiptUploadPage() {
         try {
             const formData = new FormData();
             formData.append('file', file);
-            // for MVP, user hardcoded or logic placeholder
-            formData.append('createdById', 'anonymous');
+            // MVPではcreatedByIdをあえて指定せず、DB上でnullとして扱う（外部キー制約エラーを防ぐため）
 
             // 1. Upload to Blob
             const res = await fetch('/api/receipts/upload', {
