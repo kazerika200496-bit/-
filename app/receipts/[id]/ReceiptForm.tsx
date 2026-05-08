@@ -112,168 +112,167 @@ export default function ReceiptForm({ receipt }: { receipt: any }) {
         }
     };
 
+    const inputStyle = {
+        width: '100%',
+        border: '1px solid #cbd5e1',
+        borderRadius: '6px',
+        padding: '10px',
+        fontSize: '14px',
+        boxSizing: 'border-box' as const
+    };
+
+    const labelStyle = {
+        display: 'block',
+        fontSize: '13px',
+        fontWeight: 'bold',
+        color: '#475569',
+        marginBottom: '6px'
+    };
+
+    const requiredBadge = (
+        <span style={{ fontSize: '10px', backgroundColor: '#fee2e2', color: '#dc2626', padding: '2px 6px', borderRadius: '4px', marginLeft: '8px' }}>
+            必須
+        </span>
+    );
+
     return (
-        <form onSubmit={handleConfirm} className="space-y-5">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-1.5 flex justify-between items-center">
-                        <span>日付</span>
-                        <span className="text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-bold">必須</span>
-                    </label>
+        <form onSubmit={handleConfirm}>
+            <div style={{ display: 'flex', gap: '15px', marginBottom: '15px' }}>
+                <div style={{ flex: 1 }}>
+                    <label style={labelStyle}>日付 {requiredBadge}</label>
                     <input
                         type="date"
                         value={receiptDate}
                         onChange={(e) => setReceiptDate(e.target.value)}
                         required
-                        className={`w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors shadow-sm ${!receiptDate ? 'border-red-300 bg-red-50' : 'border-slate-300'}`}
+                        style={{ ...inputStyle, borderColor: !receiptDate ? '#fca5a5' : '#cbd5e1', backgroundColor: !receiptDate ? '#fef2f2' : '#fff' }}
                     />
                 </div>
-                <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-1.5">伝票No.</label>
+                <div style={{ flex: 1 }}>
+                    <label style={labelStyle}>伝票No.</label>
                     <input
                         type="text"
                         value={slipNo}
                         onChange={(e) => setSlipNo(e.target.value)}
-                        className="w-full border border-slate-300 rounded-lg p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors shadow-sm"
+                        style={{ ...inputStyle, backgroundColor: '#f8fafc' }}
                         placeholder="任意"
                     />
                 </div>
             </div>
 
-            <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1.5 flex justify-between items-center">
-                    <span>支払先 (店名)</span>
-                    <span className="text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-bold">必須</span>
-                </label>
+            <div style={{ marginBottom: '15px' }}>
+                <label style={labelStyle}>支払先 (店名) {requiredBadge}</label>
                 <input
                     type="text"
                     value={payee}
                     onChange={(e) => setPayee(e.target.value)}
                     required
                     placeholder="※OCR未読取・要入力"
-                    className={`w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors shadow-sm ${!payee.trim() ? 'border-red-300 bg-red-50 placeholder-red-300' : 'border-slate-300'}`}
+                    style={{ ...inputStyle, borderColor: !payee.trim() ? '#fca5a5' : '#cbd5e1', backgroundColor: !payee.trim() ? '#fef2f2' : '#fff' }}
                 />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 bg-slate-50 p-4 rounded-xl border border-slate-100">
-                <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-1.5">勘定科目</label>
+            <div style={{ display: 'flex', gap: '15px', marginBottom: '15px', padding: '15px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
+                <div style={{ flex: 1 }}>
+                    <label style={labelStyle}>勘定科目</label>
                     <input
                         list="accounts"
                         value={accountInput}
                         onChange={(e) => setAccountInput(e.target.value)}
-                        className="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors shadow-sm bg-white"
+                        style={inputStyle}
                         placeholder="入力して検索..."
                     />
                     <datalist id="accounts">
                         {FAVORITE_ACCOUNTS.map(acc => <option key={acc} value={acc} />)}
                     </datalist>
                 </div>
-                <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-1.5">補助科目</label>
+                <div style={{ flex: 1 }}>
+                    <label style={labelStyle}>補助科目</label>
                     <input
                         type="text"
                         value={subAccount}
                         onChange={(e) => setSubAccount(e.target.value)}
-                        className="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors shadow-sm bg-white"
+                        style={inputStyle}
                         placeholder="任意"
                     />
                 </div>
             </div>
 
-            <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1.5">摘要 (購入内容など)</label>
+            <div style={{ marginBottom: '15px' }}>
+                <label style={labelStyle}>摘要 (購入内容など)</label>
                 <input
                     type="text"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    className="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors shadow-sm"
+                    style={inputStyle}
                     placeholder="品代、飲食代など"
                 />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 border-t border-slate-100 pt-5">
-                <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-1.5">税区分</label>
+            <div style={{ display: 'flex', gap: '15px', marginBottom: '15px', borderTop: '1px solid #f1f5f9', paddingTop: '15px', flexWrap: 'wrap' }}>
+                <div style={{ flex: '1 1 200px' }}>
+                    <label style={labelStyle}>税区分</label>
                     <select
                         value={taxCategory}
                         onChange={(e) => setTaxCategory(e.target.value)}
-                        className="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors shadow-sm bg-white"
+                        style={inputStyle}
                     >
                         <option value="">未選択</option>
                         {TAX_CATEGORIES.map(tax => <option key={tax} value={tax}>{tax}</option>)}
                     </select>
                 </div>
-                <div className="sm:col-span-1">
-                    <label className="block text-sm font-bold text-slate-700 mb-1.5 flex justify-between items-center">
-                        <span>合計金額</span>
-                        <span className="text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-bold">必須</span>
-                    </label>
-                    <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-medium">¥</span>
-                        <input
-                            type="number"
-                            value={amount}
-                            onChange={(e) => setAmount(e.target.value)}
-                            required
-                            placeholder="0"
-                            className={`w-full border rounded-lg p-2.5 pl-8 font-mono text-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors shadow-sm ${!amount.trim() ? 'border-red-300 bg-red-50 placeholder-red-300' : 'border-slate-300'}`}
-                        />
-                    </div>
+                <div style={{ flex: '1 1 200px' }}>
+                    <label style={labelStyle}>合計金額 {requiredBadge}</label>
+                    <input
+                        type="number"
+                        value={amount}
+                        onChange={(e) => setAmount(e.target.value)}
+                        required
+                        placeholder="0"
+                        style={{ ...inputStyle, fontFamily: 'monospace', fontSize: '16px', borderColor: !amount.trim() ? '#fca5a5' : '#cbd5e1', backgroundColor: !amount.trim() ? '#fef2f2' : '#fff' }}
+                    />
                 </div>
-                <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-1.5">消費税額</label>
-                    <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">¥</span>
-                        <input
-                            type="number"
-                            value={taxAmount}
-                            onChange={(e) => setTaxAmount(e.target.value)}
-                            className="w-full border border-slate-300 rounded-lg p-2.5 pl-8 font-mono bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors shadow-sm"
-                            placeholder="任意"
-                        />
-                    </div>
+                <div style={{ flex: '1 1 200px' }}>
+                    <label style={labelStyle}>消費税額</label>
+                    <input
+                        type="number"
+                        value={taxAmount}
+                        onChange={(e) => setTaxAmount(e.target.value)}
+                        style={{ ...inputStyle, fontFamily: 'monospace', backgroundColor: '#f8fafc' }}
+                        placeholder="任意"
+                    />
                 </div>
             </div>
 
-            <div className="pt-5">
-                <label className="block text-sm font-bold text-slate-700 mb-1.5">内部メモ <span className="text-xs font-normal text-slate-400 ml-1">(CSVには出力されません)</span></label>
+            <div style={{ marginBottom: '15px' }}>
+                <label style={labelStyle}>内部メモ <span style={{ fontSize: '11px', fontWeight: 'normal', color: '#94a3b8' }}>(CSVには出力されません)</span></label>
                 <textarea
                     value={memo}
                     onChange={(e) => setMemo(e.target.value)}
-                    className="w-full border border-slate-300 rounded-lg p-3 text-sm h-20 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors shadow-sm bg-slate-50 focus:bg-white resize-none"
+                    style={{ ...inputStyle, height: '80px', resize: 'none', backgroundColor: '#f8fafc' }}
                     placeholder="後から確認するためのメモ"
                 />
             </div>
 
-            <div className="pt-8 mt-4 flex flex-col-reverse sm:flex-row justify-end gap-3">
-                <button type="button" onClick={() => router.push('/receipts')} className="w-full sm:w-auto px-6 py-3 text-slate-600 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg font-bold transition-colors shadow-sm">
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '30px', paddingTop: '20px', borderTop: '1px solid #e2e8f0' }}>
+                <button 
+                    type="button" 
+                    onClick={() => router.push('/receipts')} 
+                    className="btn-outline"
+                    style={{ padding: '10px 20px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}
+                >
                     キャンセル
                 </button>
                 <button
                     type="submit"
                     disabled={isSubmitting || !isValid}
-                    className={`w-full sm:w-auto px-8 py-3 rounded-lg font-bold shadow-sm transition-colors flex items-center justify-center gap-2 ${!isValid
-                            ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
-                            : 'bg-blue-600 hover:bg-blue-700 text-white'
-                        }`}
+                    className="btn-primary"
+                    style={{ 
+                        padding: '10px 30px', borderRadius: '6px', fontWeight: 'bold', cursor: (!isValid || isSubmitting) ? 'not-allowed' : 'pointer',
+                        opacity: (!isValid || isSubmitting) ? 0.5 : 1
+                    }}
                 >
-                    {isSubmitting ? (
-                        <>
-                            <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            保存中...
-                        </>
-                    ) : (
-                        <>
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                            </svg>
-                            確定して保存
-                        </>
-                    )}
+                    {isSubmitting ? '保存中...' : '確定して保存'}
                 </button>
             </div>
         </form>
