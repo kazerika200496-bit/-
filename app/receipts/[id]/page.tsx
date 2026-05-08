@@ -43,19 +43,19 @@ export default async function ReceiptReviewPage({ params }: { params: { id: stri
                         <div style={{ 
                             backgroundColor: '#f8fafc', borderRadius: '8px', 
                             border: '1px solid #e2e8f0', padding: '10px', 
-                            minHeight: '500px', display: 'flex', 
-                            alignItems: 'center', justifyContent: 'center', 
-                            overflow: 'hidden', flex: 1
+                            minHeight: '500px', maxHeight: '650px', display: 'flex', 
+                            alignItems: 'flex-start', justifyContent: 'center', 
+                            overflowY: 'auto', flex: 1
                         }}>
                             {receipt.imageUrl ? (
                                 <img
                                     src={receipt.imageUrl}
                                     alt="Receipt Original"
-                                    style={{ maxWidth: '100%', maxHeight: '800px', objectFit: 'contain' }}
+                                    style={{ maxWidth: '100%', height: 'auto', objectFit: 'contain' }}
                                     loading="lazy"
                                 />
                             ) : (
-                                <div style={{ color: '#94a3b8', textAlign: 'center' }}>
+                                <div style={{ color: '#94a3b8', textAlign: 'center', alignSelf: 'center' }}>
                                     画像がありません
                                 </div>
                             )}
