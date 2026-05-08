@@ -428,7 +428,7 @@ export default function Home() {
 
             <div className="main-layout">
                 {/* Left: Search and Selection */}
-                <div className="left-panel">
+                <div className="left-sidebar">
                     {/* Routing */}
                     <div className="card">
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '15px' }}>
@@ -497,7 +497,9 @@ export default function Home() {
                             style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '15px' }}
                         />
                     </div>
+                </div>
 
+                <div className="center-content">
                     {/* Items List */}
                     <div className="item-grid">
                         {filteredItems.map(item => {
