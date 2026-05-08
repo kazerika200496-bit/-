@@ -74,22 +74,26 @@ export default function ReceiptUploadPage() {
                                 padding: '40px 20px', 
                                 textAlign: 'center' 
                             }}>
-                                <input
-                                    type="file"
-                                    accept="image/jpeg, image/png, image/webp, application/pdf"
-                                    style={{ 
-                                        display: 'block', 
-                                        width: '100%', 
-                                        maxWidth: '300px', 
-                                        margin: '0 auto',
-                                        padding: '10px',
-                                        backgroundColor: '#fff',
-                                        border: '1px solid #e2e8f0',
-                                        borderRadius: '6px',
-                                        cursor: 'pointer'
-                                    }}
-                                    onChange={(e) => setFile(e.target.files?.[0] || null)}
-                                />
+                                <label style={{
+                                    display: 'inline-block',
+                                    padding: '10px 20px',
+                                    backgroundColor: '#fff',
+                                    border: '1px solid #cbd5e1',
+                                    borderRadius: '6px',
+                                    cursor: 'pointer',
+                                    fontWeight: 'bold',
+                                    color: 'var(--primary-color)',
+                                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                                    transition: 'all 0.2s ease'
+                                }}>
+                                    {file ? file.name : 'ファイルを選択する'}
+                                    <input
+                                        type="file"
+                                        accept="image/jpeg, image/png, image/webp, application/pdf"
+                                        style={{ display: 'none' }}
+                                        onChange={(e) => setFile(e.target.files?.[0] || null)}
+                                    />
+                                </label>
                                 <p style={{ fontSize: '12px', color: '#94a3b8', marginTop: '15px' }}>対応フォーマット: JPEG, PNG, WEBP, PDF</p>
                             </div>
                         </div>

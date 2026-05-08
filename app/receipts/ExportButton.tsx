@@ -73,22 +73,39 @@ export default function ExportButton() {
     };
 
     return (
-        <div className="flex items-center gap-2">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <input
                 type="month"
                 value={month}
                 onChange={(e) => setMonth(e.target.value)}
-                className="border border-slate-300 rounded px-2 py-2 text-sm text-slate-600"
+                style={{ 
+                    border: '1px solid #cbd5e1', 
+                    borderRadius: '6px', 
+                    padding: '8px 12px', 
+                    fontSize: '14px', 
+                    color: '#475569',
+                    outline: 'none'
+                }}
                 title="対象月を絞り込む (未選択で全件対象)"
             />
 
             <button
                 onClick={handleExport}
                 disabled={isExporting}
-                className={`px-4 py-2 rounded-md font-medium flex items-center gap-2 shadow-sm transition-colors ${isExporting
-                    ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
-                    : 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                    }`}
+                style={{ 
+                    padding: '9px 16px', 
+                    borderRadius: '6px', 
+                    fontWeight: 'bold', 
+                    fontSize: '14px',
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '6px', 
+                    backgroundColor: isExporting ? '#cbd5e1' : '#10b981', 
+                    color: isExporting ? '#64748b' : '#fff', 
+                    border: 'none',
+                    cursor: isExporting ? 'not-allowed' : 'pointer',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                }}
             >
                 {isExporting ? '出力中...' : '↓ 弥生CSV出力'}
             </button>
@@ -97,7 +114,15 @@ export default function ExportButton() {
             {process.env.NODE_ENV === 'development' && (
                 <button
                     onClick={handleResetExport}
-                    className="px-3 py-2 text-xs bg-slate-100 hover:bg-slate-200 text-slate-500 rounded border border-slate-200"
+                    style={{ 
+                        padding: '6px 10px', 
+                        fontSize: '12px', 
+                        backgroundColor: '#f1f5f9', 
+                        color: '#64748b', 
+                        border: '1px solid #e2e8f0', 
+                        borderRadius: '4px',
+                        cursor: 'pointer'
+                    }}
                     title="テストやり直し用: 出力済をリセット"
                 >
                     🔄 テストやり直し
