@@ -58,6 +58,9 @@ export default function Home() {
             try {
                 const res = await fetch('/api/master');
                 const data = await res.json();
+                if (!res.ok) {
+                    throw new Error(data.details || data.error || `HTTP error ${res.status}`);
+                }
                 if (data.items) {
                     setItems(data.items);
                     localStorage.setItem('master_items', JSON.stringify(data.items));
@@ -70,8 +73,9 @@ export default function Home() {
                     setSuppliers(data.suppliers);
                     localStorage.setItem('master_suppliers', JSON.stringify(data.suppliers));
                 }
-            } catch (err) {
+            } catch (err: any) {
                 console.error('Failed to load from API, falling back to local:', err);
+                setShowAlert({ message: `マスタデータ取得エラー: ${err.message}`, type: 'warning' });
             }
         };
 
@@ -96,15 +100,20 @@ export default function Home() {
         };
 
         const loadLocalOrders = () => {
-            const savedOrders = localStorage.getItem('local_orders');
-            if (savedOrders) setLocalOrders(JSON.parse(savedOrders));
+            try {
+                const savedOrders = localStorage.getItem('local_orders');
+                if (savedOrders) {
+                    const parsed = JSON.parse(savedOrders);
+                    if (Array.isArray(parsed)) setLocalOrders(parsed);
+                }
+            } catch (e) {
+                console.error('Failed to parse local_orders', e);
+            }
         };
 
         loadFromApi();
         loadLocalOrders();
         loadRecentHistory();
-        setIsMounted(true);
-
 
         fetch('/api/network-info')
             .then(res => res.json())
@@ -134,6 +143,11 @@ export default function Home() {
 
     }, []);
 
+    // Ensure isMounted is always set regardless of data loading errors
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
+
     // --- Derived Data ---
     const categories = ['すべて', 'おすすめ', ...Array.from(new Set(items.map(i => i.category)))];
 
@@ -145,13 +159,13 @@ export default function Home() {
         if (sourceLoc) {
             if (sourceLoc.type === '店舗') {
                 // エブリイ駅家店は駅家工場(F002)、それ以外は本社工場(F001)
-                const factoryId = sourceLoc.name.includes('駅家店') ? 'F002' : 'F001';
+                const factoryId = (sourceLoc.name || '').includes('駅家店') ? 'F002' : 'F001';
                 destIds = [factoryId];
             } else if (sourceLoc.type === '工場') {
                 // 工場の場合は、全業者 ＋ 別の工場
                 destIds = suppliers.map(s => s.id);
                 // 駅家工場の時は本社工場にも発注できる
-                if (sourceLoc.name.includes('駅家工場')) {
+                if ((sourceLoc.name || '').includes('駅家工場')) {
                     destIds.push('F001');
                 }
             }
@@ -187,8 +201,10 @@ export default function Home() {
         return items.filter(item => {
             const matchesCategory = selectedCategory === 'すべて' ||
                 (selectedCategory === 'おすすめ' ? recommendedItemIds.includes(item.id) : item.category === selectedCategory);
-            const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                item.id.toLowerCase().includes(searchQuery.toLowerCase());
+            const itemName = item.name || '';
+            const itemId = item.id || '';
+            const matchesSearch = itemName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                itemId.toLowerCase().includes(searchQuery.toLowerCase());
             return matchesCategory && matchesSearch;
         }).sort((a, b) => {
             // おすすめを優先的に上に
@@ -454,7 +470,7 @@ export default function Home() {
 
                     {/* Filter & Search */}
                     <div className="card">
-                        <div style={{ display: 'flex', gap: '8px', marginBottom: '15px', overflowX: 'auto', paddingBottom: '8px', WebkitOverflowScrolling: 'touch' }}>
+                        <div style={{ display: 'flex', gap: '8px', marginBottom: '15px', flexWrap: 'wrap' }}>
                             {categories.map(c => (
                                 <button
                                     key={c}

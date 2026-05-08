@@ -13,17 +13,20 @@ export default function AdminPage() {
     const [isMounted, setIsMounted] = useState(false);
     const [isDirty, setIsDirty] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchData = async () => {
             try {
                 const res = await fetch('/api/master');
                 const data = await res.json();
+                if (!res.ok) throw new Error(data.details || data.error || `Master API Error ${res.status}`);
                 setItems(data.items || []);
                 setLocations(data.locations || []);
                 setSuppliers(data.suppliers || []);
-            } catch (err) {
+            } catch (err: any) {
                 console.error('Failed to fetch master data:', err);
+                setErrorMsg(err.message);
             } finally {
                 setIsLoading(false);
                 setIsMounted(true);
@@ -85,6 +88,14 @@ export default function AdminPage() {
     };
 
     if (!isMounted || isLoading) return <div style={{ padding: '20px' }}>読み込み中...</div>;
+
+    if (errorMsg) return (
+        <div style={{ padding: '40px', textAlign: 'center' }}>
+            <h2 style={{ color: '#d93025' }}>マスタデータの取得に失敗しました</h2>
+            <p>{errorMsg}</p>
+            <button onClick={() => window.location.reload()} style={{ marginTop: '20px', padding: '10px 20px', cursor: 'pointer' }}>再読み込み</button>
+        </div>
+    );
 
     return (
         <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto', fontFamily: '"Inter", sans-serif', color: '#333' }}>

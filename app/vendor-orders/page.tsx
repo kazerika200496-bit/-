@@ -11,6 +11,7 @@ export default function VendorOrdersPage() {
     const [selectedVendorId, setSelectedVendorId] = useState<string>('');
     const [isAdmin, setIsAdmin] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [viewMode, setViewMode] = useState<Record<string, 'consolidated' | 'breakdown'>>({});
 
     useEffect(() => {
@@ -27,11 +28,15 @@ export default function VendorOrdersPage() {
                 const ordersData = await ordersRes.json();
                 const masterData = await masterRes.json();
 
+                if (!ordersRes.ok) throw new Error(ordersData.details || ordersData.error || `Orders API Error ${ordersRes.status}`);
+                if (!masterRes.ok) throw new Error(masterData.details || masterData.error || `Master API Error ${masterRes.status}`);
+
                 setOrders(ordersData);
                 setSuppliers(masterData.suppliers.filter((s: Supplier) => s.type === '業者'));
                 setItems(masterData.items);
-            } catch (err) {
+            } catch (err: any) {
                 console.error('Failed to fetch data:', err);
+                setErrorMsg(err.message);
             } finally {
                 setIsLoading(false);
             }
@@ -145,6 +150,14 @@ export default function VendorOrdersPage() {
     };
 
     if (isLoading) return <div style={{ padding: '20px' }}>読み込み中...</div>;
+
+    if (errorMsg) return (
+        <div style={{ padding: '40px', textAlign: 'center' }}>
+            <h2 style={{ color: '#d93025' }}>データの取得に失敗しました</h2>
+            <p>{errorMsg}</p>
+            <button onClick={() => window.location.reload()} style={{ marginTop: '20px', padding: '10px 20px', cursor: 'pointer' }}>再読み込み</button>
+        </div>
+    );
 
     return (
         <div style={{ padding: '20px', maxWidth: '1000px', margin: '0 auto', fontFamily: '"Inter", sans-serif' }}>

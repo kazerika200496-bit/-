@@ -1,12 +1,13 @@
-const http = require('http');
+const fs = require('fs');
 
 async function test() {
-    console.log('Logging in...');
+    const adminPassword = fs.readFileSync('_temp_admin.txt', 'utf8').trim();
+    console.log('Logging in as admin...');
     try {
         const res = await fetch('http://localhost:3001/api/auth/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username: 'いしだクリーニング_本社工場', password: 'cc0ada29' })
+            body: JSON.stringify({ username: 'admin', password: adminPassword })
         });
         const cookie = res.headers.get('set-cookie');
         console.log('Login status:', res.status);
@@ -19,6 +20,7 @@ async function test() {
             console.log('Vendor orders status:', res2.status);
             const data = await res2.text();
             console.log('Data length:', data.length);
+            if (res2.status !== 200) console.log(data);
         }
     } catch (e) {
         console.error('Error:', e);

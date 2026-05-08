@@ -28,8 +28,11 @@ export async function GET() {
             locations,
             suppliers
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Failed to fetch master data:', error);
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+        return NextResponse.json({ 
+            error: 'Internal Server Error',
+            details: error?.message || String(error)
+        }, { status: 500 });
     }
 }

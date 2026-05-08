@@ -7,7 +7,9 @@ import { Supplier } from '../types';
 export default function HistoryPage() {
     const [orders, setOrders] = useState<any[]>([]);
     const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+    const [locations, setLocations] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchHistory = async () => {
@@ -19,12 +21,17 @@ export default function HistoryPage() {
                 const ordersData = await ordersRes.json();
                 const masterData = await masterRes.json();
 
+                if (!ordersRes.ok) throw new Error(ordersData.details || ordersData.error || `Orders API Error ${ordersRes.status}`);
+                if (!masterRes.ok) throw new Error(masterData.details || masterData.error || `Master API Error ${masterRes.status}`);
+
                 // Sort orders by most recent first
                 const sorted = ordersData.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
                 setOrders(sorted);
                 setSuppliers(masterData.suppliers);
-            } catch (err) {
+                setLocations(masterData.locations);
+            } catch (err: any) {
                 console.error('Failed to fetch history', err);
+                setErrorMsg(err.message);
             } finally {
                 setIsLoading(false);
             }
@@ -34,6 +41,7 @@ export default function HistoryPage() {
     }, []);
 
     const getSupplierName = (id: string) => suppliers.find(s => s.id === id)?.name || id;
+    const getLocationName = (id: string) => locations.find(l => l.id === id)?.name || id;
 
     const getStatusStyle = (status: string) => {
         switch (status) {
@@ -45,6 +53,14 @@ export default function HistoryPage() {
     };
 
     if (isLoading) return <div style={{ padding: '50px', textAlign: 'center' }}>読み込み中...</div>;
+
+    if (errorMsg) return (
+        <div style={{ padding: '50px', textAlign: 'center' }}>
+            <h2 style={{ color: '#d93025' }}>履歴データの取得に失敗しました</h2>
+            <p>{errorMsg}</p>
+            <button onClick={() => window.location.reload()} style={{ marginTop: '20px', padding: '10px 20px', cursor: 'pointer' }}>再読み込み</button>
+        </div>
+    );
 
     return (
         <div className="container" style={{ paddingBottom: '50px' }}>
@@ -63,6 +79,7 @@ export default function HistoryPage() {
                         <thead>
                             <tr style={{ borderBottom: '2px solid #eee', backgroundColor: '#fafafa' }}>
                                 <th style={{ padding: '12px' }}>発注日/更新日</th>
+                                <th style={{ padding: '12px' }}>発注元</th>
                                 <th style={{ padding: '12px' }}>発注先</th>
                                 <th style={{ padding: '12px' }}>発注内容</th>
                                 <th style={{ padding: '12px' }}>ステータス</th>
@@ -71,6 +88,10 @@ export default function HistoryPage() {
                         <tbody>
                             {orders.map(order => {
                                 const style = getStatusStyle(order.status);
+                                // Get unique location IDs from all lines in this order
+                                const orderLocationIds = Array.from(new Set(order.lines.map((l: any) => l.locationId).filter(Boolean))) as string[];
+                                const locationNames = orderLocationIds.length > 0 ? orderLocationIds.map(getLocationName).join(', ') : '不明';
+
                                 return (
                                     <tr key={order.id} style={{ borderBottom: '1px solid #eee' }}>
                                         <td style={{ padding: '12px', verticalAlign: 'top' }}>
@@ -80,6 +101,9 @@ export default function HistoryPage() {
                                                     更新: {new Date(order.confirmedAt).toLocaleDateString()} {new Date(order.confirmedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                 </div>
                                             )}
+                                        </td>
+                                        <td style={{ padding: '12px', verticalAlign: 'top' }}>
+                                            <div style={{ fontWeight: 'bold', color: '#0056b3' }}>{locationNames}</div>
                                         </td>
                                         <td style={{ padding: '12px', verticalAlign: 'top' }}>
                                             <div style={{ fontWeight: 'bold' }}>{getSupplierName(order.vendorId)}</div>
