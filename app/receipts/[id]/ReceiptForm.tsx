@@ -113,35 +113,37 @@ export default function ReceiptForm({ receipt }: { receipt: any }) {
     };
 
     return (
-        <form onSubmit={handleConfirm} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+        <form onSubmit={handleConfirm} className="space-y-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-1">
-                        日付 <span className="text-red-500 text-xs ml-1">※必須</span>
+                    <label className="block text-sm font-bold text-slate-700 mb-1.5 flex justify-between items-center">
+                        <span>日付</span>
+                        <span className="text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-bold">必須</span>
                     </label>
                     <input
                         type="date"
                         value={receiptDate}
                         onChange={(e) => setReceiptDate(e.target.value)}
                         required
-                        className={`w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 transition-colors ${!receiptDate ? 'border-red-400 bg-red-50' : 'border-slate-300'}`}
+                        className={`w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors shadow-sm ${!receiptDate ? 'border-red-300 bg-red-50' : 'border-slate-300'}`}
                     />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">伝票No.</label>
+                    <label className="block text-sm font-bold text-slate-700 mb-1.5">伝票No.</label>
                     <input
                         type="text"
                         value={slipNo}
                         onChange={(e) => setSlipNo(e.target.value)}
-                        className="w-full border border-slate-300 rounded p-2 bg-slate-50"
+                        className="w-full border border-slate-300 rounded-lg p-2.5 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors shadow-sm"
                         placeholder="任意"
                     />
                 </div>
             </div>
 
             <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">
-                    支払先 (店名) <span className="text-red-500 text-xs ml-1">※必須</span>
+                <label className="block text-sm font-bold text-slate-700 mb-1.5 flex justify-between items-center">
+                    <span>支払先 (店名)</span>
+                    <span className="text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-bold">必須</span>
                 </label>
                 <input
                     type="text"
@@ -149,18 +151,18 @@ export default function ReceiptForm({ receipt }: { receipt: any }) {
                     onChange={(e) => setPayee(e.target.value)}
                     required
                     placeholder="※OCR未読取・要入力"
-                    className={`w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 transition-colors ${!payee.trim() ? 'border-red-400 bg-red-50 placeholder-red-300' : 'border-slate-300'}`}
+                    className={`w-full border rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors shadow-sm ${!payee.trim() ? 'border-red-300 bg-red-50 placeholder-red-300' : 'border-slate-300'}`}
                 />
             </div>
 
-            <div className="grid grid-cols-2 gap-4 border-t pt-4 mt-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 bg-slate-50 p-4 rounded-xl border border-slate-100">
                 <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-1">勘定科目</label>
+                    <label className="block text-sm font-bold text-slate-700 mb-1.5">勘定科目</label>
                     <input
                         list="accounts"
                         value={accountInput}
                         onChange={(e) => setAccountInput(e.target.value)}
-                        className="w-full border border-slate-300 rounded p-2 focus:ring-2 focus:ring-blue-500"
+                        className="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors shadow-sm bg-white"
                         placeholder="入力して検索..."
                     />
                     <datalist id="accounts">
@@ -168,88 +170,110 @@ export default function ReceiptForm({ receipt }: { receipt: any }) {
                     </datalist>
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">補助科目</label>
+                    <label className="block text-sm font-bold text-slate-700 mb-1.5">補助科目</label>
                     <input
                         type="text"
                         value={subAccount}
                         onChange={(e) => setSubAccount(e.target.value)}
-                        className="w-full border border-slate-300 rounded p-2 focus:ring-2 focus:ring-blue-500"
+                        className="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors shadow-sm bg-white"
                         placeholder="任意"
                     />
                 </div>
             </div>
 
             <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">摘要 (購入内容など)</label>
+                <label className="block text-sm font-bold text-slate-700 mb-1.5">摘要 (購入内容など)</label>
                 <input
                     type="text"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    className="w-full border border-slate-300 rounded p-2 focus:ring-2 focus:ring-blue-500"
+                    className="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors shadow-sm"
                     placeholder="品代、飲食代など"
                 />
             </div>
 
-            <div className="grid grid-cols-3 gap-4 border-t pt-4 mt-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 border-t border-slate-100 pt-5">
                 <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-1">税区分</label>
+                    <label className="block text-sm font-bold text-slate-700 mb-1.5">税区分</label>
                     <select
                         value={taxCategory}
                         onChange={(e) => setTaxCategory(e.target.value)}
-                        className="w-full border border-slate-300 rounded p-2 focus:ring-2 focus:ring-blue-500"
+                        className="w-full border border-slate-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors shadow-sm bg-white"
                     >
                         <option value="">未選択</option>
                         {TAX_CATEGORIES.map(tax => <option key={tax} value={tax}>{tax}</option>)}
                     </select>
                 </div>
-                <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-1">
-                        合計金額 <span className="text-red-500 text-xs ml-1">※必須</span>
+                <div className="sm:col-span-1">
+                    <label className="block text-sm font-bold text-slate-700 mb-1.5 flex justify-between items-center">
+                        <span>合計金額</span>
+                        <span className="text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-bold">必須</span>
                     </label>
-                    <input
-                        type="number"
-                        value={amount}
-                        onChange={(e) => setAmount(e.target.value)}
-                        required
-                        placeholder="0"
-                        className={`w-full border rounded p-2 font-mono text-lg focus:ring-2 focus:ring-blue-500 transition-colors ${!amount.trim() ? 'border-red-400 bg-red-50 placeholder-red-300' : 'border-slate-300'}`}
-                    />
+                    <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-medium">¥</span>
+                        <input
+                            type="number"
+                            value={amount}
+                            onChange={(e) => setAmount(e.target.value)}
+                            required
+                            placeholder="0"
+                            className={`w-full border rounded-lg p-2.5 pl-8 font-mono text-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors shadow-sm ${!amount.trim() ? 'border-red-300 bg-red-50 placeholder-red-300' : 'border-slate-300'}`}
+                        />
+                    </div>
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">消費税額</label>
-                    <input
-                        type="number"
-                        value={taxAmount}
-                        onChange={(e) => setTaxAmount(e.target.value)}
-                        className="w-full border border-slate-300 rounded p-2 font-mono bg-slate-50"
-                        placeholder="任意"
-                    />
+                    <label className="block text-sm font-bold text-slate-700 mb-1.5">消費税額</label>
+                    <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium">¥</span>
+                        <input
+                            type="number"
+                            value={taxAmount}
+                            onChange={(e) => setTaxAmount(e.target.value)}
+                            className="w-full border border-slate-300 rounded-lg p-2.5 pl-8 font-mono bg-slate-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors shadow-sm"
+                            placeholder="任意"
+                        />
+                    </div>
                 </div>
             </div>
 
-            <div className="mt-2 pt-4 border-t">
-                <label className="block text-sm font-medium text-slate-700 mb-1">内部メモ (CSVには出力されません)</label>
+            <div className="pt-5">
+                <label className="block text-sm font-bold text-slate-700 mb-1.5">内部メモ <span className="text-xs font-normal text-slate-400 ml-1">(CSVには出力されません)</span></label>
                 <textarea
                     value={memo}
                     onChange={(e) => setMemo(e.target.value)}
-                    className="w-full border border-slate-300 rounded p-2 text-sm h-16"
+                    className="w-full border border-slate-300 rounded-lg p-3 text-sm h-20 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors shadow-sm bg-slate-50 focus:bg-white resize-none"
                     placeholder="後から確認するためのメモ"
                 />
             </div>
 
-            <div className="pt-6 mt-6 border-t flex justify-end gap-3">
-                <button type="button" onClick={() => router.push('/receipts')} className="px-4 py-2 text-slate-600 bg-slate-100 hover:bg-slate-200 rounded font-medium transition">
-                    破棄して一覧へ戻る
+            <div className="pt-8 mt-4 flex flex-col-reverse sm:flex-row justify-end gap-3">
+                <button type="button" onClick={() => router.push('/receipts')} className="w-full sm:w-auto px-6 py-3 text-slate-600 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg font-bold transition-colors shadow-sm">
+                    キャンセル
                 </button>
                 <button
                     type="submit"
                     disabled={isSubmitting || !isValid}
-                    className={`px-6 py-2 rounded font-medium shadow-sm transition ${!isValid
+                    className={`w-full sm:w-auto px-8 py-3 rounded-lg font-bold shadow-sm transition-colors flex items-center justify-center gap-2 ${!isValid
                             ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
                             : 'bg-blue-600 hover:bg-blue-700 text-white'
                         }`}
                 >
-                    {isSubmitting ? '保存中...' : '確定して保存'}
+                    {isSubmitting ? (
+                        <>
+                            <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            保存中...
+                        </>
+                    ) : (
+                        <>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                            確定して保存
+                        </>
+                    )}
                 </button>
             </div>
         </form>
