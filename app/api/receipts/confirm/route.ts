@@ -6,20 +6,23 @@ const prisma = new PrismaClient();
 export async function POST(request: NextRequest) {
     try {
         const data = await request.json();
-        const { receiptId, payee, amount, currency, taxAmount, receiptDate, paymentMethod, accountCode, memo } = data;
+        const { receiptId, slipNo, receiptDate, payee, amount, taxAmount, accountCode, subAccount, description, taxCategory, paymentMethod, memo } = data;
 
         if (!receiptId) return NextResponse.json({ error: 'Missing receiptId' }, { status: 400 });
 
         const updatedReceipt = await prisma.receipt.update({
             where: { id: receiptId },
             data: {
+                slipNo,
+                receiptDate: receiptDate ? new Date(receiptDate) : null,
                 payee,
                 amount: amount ? parseInt(amount, 10) : null,
-                currency,
                 taxAmount: taxAmount ? parseInt(taxAmount, 10) : null,
-                receiptDate: receiptDate ? new Date(receiptDate) : null,
-                paymentMethod,
                 accountCode,
+                subAccount,
+                description,
+                taxCategory,
+                paymentMethod,
                 memo,
                 status: "CONFIRMED"
             }

@@ -127,6 +127,12 @@ model Receipt {
   paymentMethod String?   // 支払方法（現金、クレカ等）
   accountCode   String?   // 借方勘定科目（消耗品費、交通費など）
 
+  // 新規追加フィールド（経理用）
+  slipNo        String?   // 伝票No.
+  subAccount    String?   // 補助科目
+  description   String?   // 摘要
+  taxCategory   String?   // 税区分
+
   // ステータスと追跡
   status        ReceiptStatus @default(UPLOADED) // enum化
   createdById   String?   // 作成者（アップロードしたユーザー）

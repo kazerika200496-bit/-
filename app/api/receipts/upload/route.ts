@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { put } from '@vercel/blob';
-
-// Notice: In the MVP, we use the `lib/prisma.ts` exported object but we need to import correctly.
-// Depending on architecture, adapt this. For now we use the global prisma client or construct one.
 import { PrismaClient } from '@prisma/client';
+
 const prisma = new PrismaClient();
+
+// Helper to convert Blob/File to Base64
+async function fileToBase64(file: File): Promise<string> {
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    return `data:${file.type};base64,${buffer.toString('base64')}`;
+}
 
 export async function POST(request: NextRequest) {
     try {
@@ -16,36 +20,44 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'No file provided' }, { status: 400 });
         }
 
-        // 1. Upload to Vercel Blob as Private
-        const filename = `${Date.now()}-${file.name}`;
-        const blob = await put(filename, file, {
-            access: 'public', // Using 'public' temporarily for MVP if token proxy isn't set, or change to 'private'
-            // The user specifically requested private blobs.
-            // Therefore, setting 'private', requiring token for read.
-        });
+        // 1. Convert to Base64 (MVP approach)
+        const base64Image = await fileToBase64(file);
 
-        // We must manually overwrite access since Vercel library defaults to what we write
-        // Let's ensure it's private. Note: If it's private, we need a proxy to view images.
-        // Wait, the SDK put function throws if token isn't configured. Let's assume BLOB_READ_WRITE_TOKEN is set.
+        // 2. Mock OCR Processing (Simulate 2s delay)
+        await new Promise(resolve => setTimeout(resolve, 2000));
 
-        const blobResponse = await put(`receipts/${filename}`, file, {
-            access: 'public', // WARNING: Change to 'private' in PROD after writing the proxy route. Just keeping public to avoid breaking the MVP skeleton right now.
-            // Actually, the user asked for private. I will write it as 'private'.
-        });
+        const mockData = {
+            payee: 'ダミー株式会社',
+            amount: 15400,
+            taxAmount: 1400,
+            receiptDate: new Date(),
+            slipNo: `SLIP-${Math.floor(Math.random() * 10000)}`,
+            accountCode: '消耗品費',
+            subAccount: '',
+            description: '事務用品',
+            taxCategory: '課税仕入10%',
+        };
 
-        // We rewrite the blob variable to the correct one (simulated).
-        const finalBlob = blobResponse;
-
-        // 2. Insert into Database as UPLOADED
+        // 3. Insert into Database as OCR_DONE
         const receipt = await prisma.receipt.create({
             data: {
-                imageUrl: finalBlob.url,         // Vercel Blob URL (if private, cannot be used directly in img src without proxy)
-                blobPathname: finalBlob.pathname, // Useful for proxy or deletion
+                imageUrl: base64Image,
                 contentType: file.type,
                 fileName: file.name,
                 fileSize: file.size,
-                status: 'UPLOADED',
-                createdById: createdById || null
+                status: 'OCR_DONE',
+                createdById: createdById || null,
+                
+                // Set Mock OCR Data
+                payee: mockData.payee,
+                amount: mockData.amount,
+                taxAmount: mockData.taxAmount,
+                receiptDate: mockData.receiptDate,
+                slipNo: mockData.slipNo,
+                accountCode: mockData.accountCode,
+                subAccount: mockData.subAccount,
+                description: mockData.description,
+                taxCategory: mockData.taxCategory,
             }
         });
 
@@ -55,6 +67,7 @@ export async function POST(request: NextRequest) {
         console.error('Upload Error:', error);
         return NextResponse.json({ error: error.message || 'Upload failed' }, { status: 500 });
     } finally {
+        // Disconnect to avoid exhausting connections in serverless environment
         await prisma.$disconnect();
     }
 }

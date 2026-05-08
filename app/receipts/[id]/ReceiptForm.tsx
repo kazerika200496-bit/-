@@ -3,6 +3,27 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
+const FAVORITE_ACCOUNTS = [
+    '消耗品費',
+    '雑費',
+    '通信費',
+    '旅費交通費',
+    '会議費',
+    '接待交際費',
+    '水道光熱費',
+    '修繕費',
+    '車両費',
+    '支払手数料'
+];
+
+const TAX_CATEGORIES = [
+    '課税仕入10%',
+    '課税仕入8%（軽減）',
+    '対象外',
+    '非課税',
+    '不課税'
+];
+
 export default function ReceiptForm({ receipt }: { receipt: any }) {
     const router = useRouter();
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -13,11 +34,16 @@ export default function ReceiptForm({ receipt }: { receipt: any }) {
     const [receiptDate, setReceiptDate] = useState(
         receipt.receiptDate ? new Date(receipt.receiptDate).toISOString().split('T')[0] : ''
     );
-    const [currency, setCurrency] = useState(receipt.currency || 'JPY');
     const [taxAmount, setTaxAmount] = useState(receipt.taxAmount?.toString() || '');
-    const [paymentMethod, setPaymentMethod] = useState(receipt.paymentMethod || '');
+    
+    // New Fields
+    const [slipNo, setSlipNo] = useState(receipt.slipNo || '');
     const [accountCode, setAccountCode] = useState(receipt.accountCode || '');
-    const [memo, setMemo] = useState(receipt.memo || '');
+    const [subAccount, setSubAccount] = useState(receipt.subAccount || '');
+    const [description, setDescription] = useState(receipt.description || '');
+    const [taxCategory, setTaxCategory] = useState(receipt.taxCategory || '');
+    const [paymentMethod, setPaymentMethod] = useState(receipt.paymentMethod || '');
+    const [memo, setMemo] = useState(receipt.memo || ''); // For internal note
 
     // Validation
     const isValid = payee.trim() !== '' && amount.trim() !== '' && receiptDate !== '';
@@ -36,13 +62,16 @@ export default function ReceiptForm({ receipt }: { receipt: any }) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     receiptId: receipt.id,
+                    slipNo,
+                    receiptDate,
                     payee,
                     amount,
-                    currency,
                     taxAmount,
-                    receiptDate,
-                    paymentMethod,
                     accountCode,
+                    subAccount,
+                    description,
+                    taxCategory,
+                    paymentMethod,
                     memo
                 })
             });
@@ -60,21 +89,7 @@ export default function ReceiptForm({ receipt }: { receipt: any }) {
     };
 
     return (
-        <form onSubmit={handleConfirm} className="space-y-5">
-            <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1">
-                    支払先 (店名) <span className="text-red-500 text-xs ml-1">※必須</span>
-                </label>
-                <input
-                    type="text"
-                    value={payee}
-                    onChange={(e) => setPayee(e.target.value)}
-                    required
-                    placeholder="※OCR未読取・要入力"
-                    className={`w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 transition-colors ${!payee.trim() ? 'border-red-400 bg-red-50 placeholder-red-300' : 'border-slate-300'}`}
-                />
-            </div>
-
+        <form onSubmit={handleConfirm} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
                 <div>
                     <label className="block text-sm font-bold text-slate-700 mb-1">
@@ -89,17 +104,80 @@ export default function ReceiptForm({ receipt }: { receipt: any }) {
                     />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">通貨</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">伝票No.</label>
                     <input
                         type="text"
-                        value={currency}
-                        onChange={(e) => setCurrency(e.target.value)}
+                        value={slipNo}
+                        onChange={(e) => setSlipNo(e.target.value)}
                         className="w-full border border-slate-300 rounded p-2 bg-slate-50"
+                        placeholder="任意"
                     />
                 </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div>
+                <label className="block text-sm font-bold text-slate-700 mb-1">
+                    支払先 (店名) <span className="text-red-500 text-xs ml-1">※必須</span>
+                </label>
+                <input
+                    type="text"
+                    value={payee}
+                    onChange={(e) => setPayee(e.target.value)}
+                    required
+                    placeholder="※OCR未読取・要入力"
+                    className={`w-full border rounded p-2 focus:ring-2 focus:ring-blue-500 transition-colors ${!payee.trim() ? 'border-red-400 bg-red-50 placeholder-red-300' : 'border-slate-300'}`}
+                />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 border-t pt-4 mt-2">
+                <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-1">勘定科目</label>
+                    <input
+                        list="accounts"
+                        value={accountCode}
+                        onChange={(e) => setAccountCode(e.target.value)}
+                        className="w-full border border-slate-300 rounded p-2 focus:ring-2 focus:ring-blue-500"
+                        placeholder="入力して検索..."
+                    />
+                    <datalist id="accounts">
+                        {FAVORITE_ACCOUNTS.map(acc => <option key={acc} value={acc} />)}
+                    </datalist>
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">補助科目</label>
+                    <input
+                        type="text"
+                        value={subAccount}
+                        onChange={(e) => setSubAccount(e.target.value)}
+                        className="w-full border border-slate-300 rounded p-2 focus:ring-2 focus:ring-blue-500"
+                        placeholder="任意"
+                    />
+                </div>
+            </div>
+
+            <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">摘要 (購入内容など)</label>
+                <input
+                    type="text"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    className="w-full border border-slate-300 rounded p-2 focus:ring-2 focus:ring-blue-500"
+                    placeholder="品代、飲食代など"
+                />
+            </div>
+
+            <div className="grid grid-cols-3 gap-4 border-t pt-4 mt-2">
+                <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-1">税区分</label>
+                    <select
+                        value={taxCategory}
+                        onChange={(e) => setTaxCategory(e.target.value)}
+                        className="w-full border border-slate-300 rounded p-2 focus:ring-2 focus:ring-blue-500"
+                    >
+                        <option value="">未選択</option>
+                        {TAX_CATEGORIES.map(tax => <option key={tax} value={tax}>{tax}</option>)}
+                    </select>
+                </div>
                 <div>
                     <label className="block text-sm font-bold text-slate-700 mb-1">
                         合計金額 <span className="text-red-500 text-xs ml-1">※必須</span>
@@ -114,7 +192,7 @@ export default function ReceiptForm({ receipt }: { receipt: any }) {
                     />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">内消費税額等</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">消費税額</label>
                     <input
                         type="number"
                         value={taxAmount}
@@ -125,47 +203,13 @@ export default function ReceiptForm({ receipt }: { receipt: any }) {
                 </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 border-t pt-4 mt-2">
-                <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">借方勘定科目 (弥生用)</label>
-                    <select
-                        value={accountCode}
-                        onChange={(e) => setAccountCode(e.target.value)}
-                        className="w-full border border-slate-300 rounded p-2"
-                    >
-                        <option value="">未選択</option>
-                        <option value="消耗品費">消耗品費</option>
-                        <option value="荷造運賃">荷造運賃</option>
-                        <option value="水道光熱費">水道光熱費</option>
-                        <option value="旅費交通費">旅費交通費</option>
-                        <option value="雑費">雑費</option>
-                        <option value="その他">その他</option>
-                    </select>
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">貸方・支払方法</label>
-                    <select
-                        value={paymentMethod}
-                        onChange={(e) => setPaymentMethod(e.target.value)}
-                        className="w-full border border-slate-300 rounded p-2"
-                    >
-                        <option value="">未選択</option>
-                        <option value="現金">現金</option>
-                        <option value="クレジットカード">クレジットカード</option>
-                        <option value="電子マネー/QR">電子マネー/QR</option>
-                        <option value="請求書払い">請求書払い</option>
-                        <option value="立替">立替精算</option>
-                    </select>
-                </div>
-            </div>
-
-            <div className="mt-2">
-                <label className="block text-sm font-medium text-slate-700 mb-1">メモ・用途</label>
+            <div className="mt-2 pt-4 border-t">
+                <label className="block text-sm font-medium text-slate-700 mb-1">内部メモ (CSVには出力されません)</label>
                 <textarea
                     value={memo}
                     onChange={(e) => setMemo(e.target.value)}
-                    className="w-full border border-slate-300 rounded p-2 text-sm h-20"
-                    placeholder="購入目的や備考を記載してください"
+                    className="w-full border border-slate-300 rounded p-2 text-sm h-16"
+                    placeholder="後から確認するためのメモ"
                 />
             </div>
 
@@ -181,7 +225,7 @@ export default function ReceiptForm({ receipt }: { receipt: any }) {
                             : 'bg-blue-600 hover:bg-blue-700 text-white'
                         }`}
                 >
-                    {isSubmitting ? '保存中...' : '確定して保存 (VERIFY)'}
+                    {isSubmitting ? '保存中...' : '確定して保存'}
                 </button>
             </div>
         </form>

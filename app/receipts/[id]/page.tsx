@@ -31,7 +31,7 @@ export default async function ReceiptReviewPage({ params }: { params: { id: stri
                 <div className="bg-slate-100 rounded-lg border border-slate-200 p-4 min-h-[500px] flex items-center justify-center relative overflow-hidden">
                     {receipt.imageUrl ? (
                         <img
-                            src={`/api/receipts/image/${receipt.id}`}
+                            src={receipt.imageUrl}
                             alt="Receipt Original"
                             className="max-w-full max-h-[800px] object-contain shadow-sm"
                             loading="lazy"

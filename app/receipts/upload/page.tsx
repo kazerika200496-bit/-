@@ -32,16 +32,6 @@ export default function ReceiptUploadPage() {
 
             if (!res.ok) throw new Error(data.error);
 
-            // 2. Trigger OCR Process
-            const ocrRes = await fetch('/api/ocr', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ receiptId: data.receiptId })
-            });
-            const ocrData = await ocrRes.json();
-
-            if (!ocrRes.ok) throw new Error(ocrData.error);
-
             // 3. Redirect to Review
             router.push(`/receipts/${data.receiptId}`);
         } catch (err: any) {
@@ -79,7 +69,7 @@ export default function ReceiptUploadPage() {
                     disabled={!file || isUploading}
                     className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-bold py-3 px-4 rounded-md transition-colors"
                 >
-                    {isUploading ? '解析中 (Document AI連携)...' : 'アップロードして自動解析'}
+                    {isUploading ? 'アップロード＆解析中...' : 'アップロードして自動解析'}
                 </button>
             </form>
         </div>

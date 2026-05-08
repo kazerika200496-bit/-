@@ -3,18 +3,6 @@ import { PrismaClient, Receipt } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// 弥生 貸方勘定科目 変換ルール
-function mapPaymentToCreditAccount(method: string | null) {
-    switch (method) {
-        case '現金': return '現金';
-        case 'クレジットカード': return '未払金';
-        case '電子マネー/QR': return '未払金';
-        case '請求書払い': return '買掛金';
-        case '立替': return '役員借入金';
-        default: return '未決済';
-    }
-}
-
 export async function POST(request: NextRequest) {
     try {
         const data = await request.json().catch(() => ({}));
@@ -46,36 +34,47 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: '対象の確定済データがありません。' }, { status: 400 });
         }
 
-        // CSVヘッダー
+        // 汎用CSVヘッダー
         const headers = [
             '日付',
-            '借方勘定科目',
-            '借方金額',
-            '内消費税額',
-            '貸方勘定科目',
-            '貸方金額',
-            '摘要'
+            '伝票No.',
+            '勘定科目',
+            '補助科目',
+            '支払い先',
+            '摘要',
+            '税区分',
+            '金額',
+            '消費税額',
+            '元画像'
         ];
 
         // CSV行の生成
-        const rows = receipts.map((r: Receipt) => {
+        const rows = receipts.map((r: any) => {
             const dateStr = r.receiptDate ? new Date(r.receiptDate).toISOString().split('T')[0] : '';
-            const debitAccount = r.accountCode || '';
+            const slipNo = r.slipNo || '';
+            const account = r.accountCode || '';
+            const subAccount = r.subAccount || '';
+            const payee = r.payee || '';
+            const description = r.description || '';
+            const taxCategory = r.taxCategory || '';
             const amount = r.amount || 0;
             const taxAmount = r.taxAmount || 0;
+            const imageInfo = r.imageUrl && r.imageUrl.startsWith('data:image') ? 'Base64画像保存済' : (r.imageUrl || '');
 
-            const creditAccount = mapPaymentToCreditAccount(r.paymentMethod);
-            const memoParts = [r.payee || '', r.memo || ''].filter(Boolean);
-            const description = memoParts.join(' / ').replace(/,/g, '，');
+            // エスケープ処理（カンマや改行を含む場合）
+            const escapeCsv = (str: string) => `"${str.replace(/"/g, '""')}"`;
 
             return [
                 dateStr,
-                debitAccount,
+                escapeCsv(slipNo),
+                escapeCsv(account),
+                escapeCsv(subAccount),
+                escapeCsv(payee),
+                escapeCsv(description),
+                escapeCsv(taxCategory),
                 amount,
                 taxAmount,
-                creditAccount,
-                amount,
-                description
+                escapeCsv(imageInfo)
             ].join(',');
         });
 
@@ -84,7 +83,7 @@ export async function POST(request: NextRequest) {
 
         // 【事故防止】出力したデータを「出力済 (EXPORT_READY)」に更新する
         await prisma.receipt.updateMany({
-            where: { id: { in: receipts.map((r: Receipt) => r.id) } },
+            where: { id: { in: receipts.map((r: any) => r.id) } },
             data: { status: 'EXPORT_READY' }
         });
 
@@ -92,7 +91,7 @@ export async function POST(request: NextRequest) {
         return new NextResponse(Buffer.concat([bom, Buffer.from(csvContent)]), {
             headers: {
                 'Content-Type': 'text/csv; charset=utf-8',
-                'Content-Disposition': `attachment; filename="yayoi_export_${monthString || new Date().toISOString().split('T')[0]}.csv"`,
+                'Content-Disposition': `attachment; filename="receipts_export_${monthString || new Date().toISOString().split('T')[0]}.csv"`,
                 'X-Export-Count': receipts.length.toString()
             },
         });
