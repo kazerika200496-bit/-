@@ -500,8 +500,40 @@ export default function Home() {
                 </div>
 
                 <div className="center-content">
+                    {/* Top Buttons (Print / History / Master) */}
+                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '20px' }}>
+                        <Link href="/vendor-orders" style={{
+                            padding: '10px 16px',
+                            backgroundColor: '#e8f0fe',
+                            color: '#1a73e8',
+                            textDecoration: 'none',
+                            borderRadius: '8px',
+                            fontWeight: 'bold',
+                            fontSize: '14px',
+                            border: '1px solid #1a73e8'
+                        }}>📦 業者別注文リスト (確定/印刷)</Link>
+                        <Link href="/history" style={{
+                            padding: '10px 16px',
+                            backgroundColor: '#fff',
+                            color: '#666',
+                            textDecoration: 'none',
+                            borderRadius: '8px',
+                            border: '1px solid #ddd',
+                            fontSize: '14px'
+                        }}>📜 履歴</Link>
+                        <Link href="/admin" style={{
+                            padding: '10px 16px',
+                            backgroundColor: '#fff',
+                            color: '#666',
+                            textDecoration: 'none',
+                            borderRadius: '8px',
+                            border: '1px solid #ddd',
+                            fontSize: '14px'
+                        }}>⚙️ マスタ</Link>
+                    </div>
+
                     {/* Items List */}
-                    <div className="item-grid">
+                    <div className="item-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
                         {filteredItems.map(item => {
                             const isRec = recommendedItemIds.includes(item.id);
                             const itemInCart = cart.find(c => c.itemId === item.id);
@@ -598,38 +630,6 @@ export default function Home() {
                         })}
                     </div>
                 </div>
-
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center', padding: '10px 0' }}>
-                    <Link href="/vendor-orders" style={{
-                        padding: '10px 16px',
-                        backgroundColor: '#e8f0fe',
-                        color: '#1a73e8',
-                        textDecoration: 'none',
-                        borderRadius: '8px',
-                        fontWeight: 'bold',
-                        fontSize: '14px',
-                        border: '1px solid #1a73e8'
-                    }}>📦 業者別注文リスト (確定/印刷)</Link>
-                    <Link href="/history" style={{
-                        padding: '10px 16px',
-                        backgroundColor: '#fff',
-                        color: '#666',
-                        textDecoration: 'none',
-                        borderRadius: '8px',
-                        border: '1px solid #ddd',
-                        fontSize: '14px'
-                    }}>📜 履歴</Link>
-                    <Link href="/admin" style={{
-                        padding: '10px 16px',
-                        backgroundColor: '#fff',
-                        color: '#666',
-                        textDecoration: 'none',
-                        borderRadius: '8px',
-                        border: '1px solid #ddd',
-                        fontSize: '14px'
-                    }}>⚙️ マスタ</Link>
-                </div>
-
 
                 {/* Right: Cart */}
                 <div className="right-panel">
