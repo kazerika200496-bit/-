@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 export default function ExportButton() {
     const [isExporting, setIsExporting] = useState(false);
     const [month, setMonth] = useState(''); // e.g. "2024-04"
+    const [format, setFormat] = useState('default'); // 'default' or 'yayoi'
     const router = useRouter();
 
     const handleExport = async () => {
@@ -14,7 +15,7 @@ export default function ExportButton() {
             const response = await fetch('/api/receipts/export', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ month })
+                body: JSON.stringify({ month, format })
             });
 
             if (!response.ok) {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import { FORMATS } from './exportFormats';
+import { FORMATTERS, generateCsvContent } from '@/lib/receipt-export-utils';
 
 const prisma = new PrismaClient();
 
@@ -8,7 +8,8 @@ export async function POST(request: NextRequest) {
     try {
         const data = await request.json().catch(() => ({}));
         const monthString = data?.month; // e.g. "2024-04"
-        const formatType = data?.format || 'generic'; // デフォルトは汎用フォーマット
+        const formatKey = data?.format || 'default';
+        const formatter = FORMATTERS[formatKey] || FORMATTERS.default;
 
         // ベース条件
         let whereClause: any = { status: 'CONFIRMED' };
@@ -36,13 +37,8 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: '対象の確定済データがありません。' }, { status: 400 });
         }
 
-        // フォーマットの取得（見つからなければ汎用）
-        const format = FORMATS[formatType] || FORMATS.generic;
-
-        // CSV行の生成（設定されたマッパーを呼び出すだけ）
-        const rows = receipts.map((r: any) => format.rowMapper(r).join(','));
-
-        const csvContent = [format.headers.join(','), ...rows].join('\n');
+        // CSV生成 (共通ユーティリティを使用)
+        const csvContent = generateCsvContent(receipts, formatter);
         const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
 
         // 【事故防止】出力したデータを「出力済 (EXPORT_READY)」に更新する
@@ -51,11 +47,13 @@ export async function POST(request: NextRequest) {
             data: { status: 'EXPORT_READY' }
         });
 
+        const filename = `${formatter.filenamePrefix}_${monthString || new Date().toISOString().split('T')[0]}.csv`;
+
         // 成功した場合はCSVのバイナリと、何件出力したかのヘッダーを返す
         return new NextResponse(Buffer.concat([bom, Buffer.from(csvContent)]), {
             headers: {
                 'Content-Type': 'text/csv; charset=utf-8',
-                'Content-Disposition': `attachment; filename="receipts_export_${formatType}_${monthString || new Date().toISOString().split('T')[0]}.csv"`,
+                'Content-Disposition': `attachment; filename="${filename}"`,
                 'X-Export-Count': receipts.length.toString()
             },
         });
