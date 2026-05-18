@@ -1,14 +1,40 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 export default function ReceiptUploadPage() {
     const router = useRouter();
     const [file, setFile] = useState<File | null>(null);
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [isUploading, setIsUploading] = useState(false);
     const [error, setError] = useState('');
+
+    useEffect(() => {
+        if (!file) {
+            setPreviewUrl(null);
+            return;
+        }
+
+        if (file.type.startsWith('image/')) {
+            const objectUrl = URL.createObjectURL(file);
+            setPreviewUrl(objectUrl);
+            return () => URL.revokeObjectURL(objectUrl);
+        } else {
+            setPreviewUrl(null);
+        }
+    }, [file]);
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files.length > 0) {
+            setFile(e.target.files[0]);
+        }
+    };
+
+    const handleClearSelection = () => {
+        setFile(null);
+    };
 
     const handleUpload = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -64,38 +90,65 @@ export default function ReceiptUploadPage() {
                     
                     <form onSubmit={handleUpload}>
                         <div style={{ marginBottom: '30px' }}>
-                            <label style={{ display: 'block', fontSize: '14px', fontWeight: 'bold', color: '#334155', marginBottom: '10px' }}>
-                                レシート画像を選択してください
+                            <label style={{ display: 'block', fontSize: '14px', fontWeight: 'bold', color: '#334155', marginBottom: '15px' }}>
+                                レシート画像を選択または撮影してください
                             </label>
-                            <div style={{ 
-                                border: '2px dashed #cbd5e1', 
-                                backgroundColor: '#f8fafc', 
-                                borderRadius: '12px', 
-                                padding: '40px 20px', 
-                                textAlign: 'center' 
-                            }}>
-                                <label style={{
-                                    display: 'inline-block',
-                                    padding: '10px 20px',
-                                    backgroundColor: '#fff',
-                                    border: '1px solid #cbd5e1',
-                                    borderRadius: '6px',
-                                    cursor: 'pointer',
-                                    fontWeight: 'bold',
-                                    color: 'var(--primary-color)',
-                                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                                    transition: 'all 0.2s ease'
-                                }}>
-                                    {file ? file.name : 'ファイルを選択する'}
-                                    <input
-                                        type="file"
-                                        accept="image/jpeg, image/png, image/webp, application/pdf"
-                                        style={{ display: 'none' }}
-                                        onChange={(e) => setFile(e.target.files?.[0] || null)}
-                                    />
-                                </label>
-                                <p style={{ fontSize: '12px', color: '#94a3b8', marginTop: '15px' }}>対応フォーマット: JPEG, PNG, WEBP, PDF</p>
-                            </div>
+
+                            {file ? (
+                                <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '15px', backgroundColor: '#f8fafc', textAlign: 'center' }}>
+                                    <div style={{ marginBottom: '10px', fontSize: '14px', fontWeight: 'bold', color: '#334155', wordBreak: 'break-all' }}>
+                                        選択中: {file.name}
+                                    </div>
+                                    {previewUrl ? (
+                                        <div style={{ marginBottom: '15px' }}>
+                                            <img 
+                                                src={previewUrl} 
+                                                alt="Preview" 
+                                                style={{ maxWidth: '100%', maxHeight: '300px', objectFit: 'contain', borderRadius: '4px', border: '1px solid #e2e8f0', backgroundColor: '#fff' }} 
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div style={{ padding: '30px 0', color: '#64748b', fontSize: '14px' }}>
+                                            (プレビュー非対応のファイルです)
+                                        </div>
+                                    )}
+                                    <button 
+                                        type="button" 
+                                        onClick={handleClearSelection}
+                                        style={{ padding: '8px 16px', fontSize: '13px', backgroundColor: '#fff', border: '1px solid #ef4444', color: '#ef4444', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+                                    >
+                                        選び直す
+                                    </button>
+                                </div>
+                            ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                                    {/* カメラ用 */}
+                                    <label style={{ display: 'block', padding: '20px', backgroundColor: '#f0fdf4', border: '2px dashed #10b981', borderRadius: '8px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s', color: '#047857', fontWeight: 'bold' }}>
+                                        <div style={{ fontSize: '28px', marginBottom: '8px' }}>📷</div>
+                                        カメラで撮影する
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            capture="environment"
+                                            style={{ display: 'none' }}
+                                            onChange={handleFileChange}
+                                        />
+                                    </label>
+                                    
+                                    {/* PC・ライブラリ用 */}
+                                    <label style={{ display: 'block', padding: '15px', backgroundColor: '#fff', border: '1px solid #cbd5e1', borderRadius: '8px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s', color: '#475569', fontWeight: 'bold' }}>
+                                        <div style={{ fontSize: '20px', marginBottom: '4px' }}>📁</div>
+                                        画像・ファイルを選択
+                                        <input
+                                            type="file"
+                                            accept="image/jpeg, image/png, image/webp, application/pdf"
+                                            style={{ display: 'none' }}
+                                            onChange={handleFileChange}
+                                        />
+                                    </label>
+                                    <p style={{ fontSize: '12px', color: '#94a3b8', textAlign: 'center', marginTop: '5px' }}>対応フォーマット: JPEG, PNG, WEBP, PDF</p>
+                                </div>
+                            )}
                         </div>
 
                         {error && (
