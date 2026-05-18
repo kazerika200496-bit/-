@@ -35,6 +35,14 @@ export default function ReceiptForm({ receipt }: { receipt: any }) {
     // Validation
     const isValid = payee.trim() !== '' && amount.trim() !== '' && receiptDate !== '';
 
+    // Check if account code is missing but name is present
+    const isCodeMissing = (() => {
+        const trimmed = accountInput.trim();
+        if (!trimmed) return false;
+        const match = trimmed.match(/^(\d+)\s+(.+)$/);
+        return !match;
+    })();
+
     const handleConfirm = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!isValid) {
@@ -159,6 +167,11 @@ export default function ReceiptForm({ receipt }: { receipt: any }) {
                     <datalist id="accounts">
                         {FAVORITE_ACCOUNTS.map(acc => <option key={acc} value={acc} />)}
                     </datalist>
+                    {isCodeMissing && (
+                        <div style={{ marginTop: '8px', padding: '8px', backgroundColor: '#fffbeb', color: '#b45309', fontSize: '12px', borderRadius: '4px', border: '1px solid #fef3c7' }}>
+                            ⚠️ 勘定科目コード未設定 (社内確認用としてはこのままで保存可能です)
+                        </div>
+                    )}
                 </div>
                 <div style={{ flex: 1 }}>
                     <label style={labelStyle}>補助科目</label>
