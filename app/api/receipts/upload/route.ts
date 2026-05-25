@@ -26,19 +26,6 @@ export async function POST(request: NextRequest) {
         // 2. Mock OCR Processing (Simulate 2s delay)
         await new Promise(resolve => setTimeout(resolve, 2000));
 
-        const mockData = {
-            payee: 'ダミー株式会社',
-            amount: 15400,
-            taxAmount: 1400,
-            receiptDate: new Date(),
-            slipNo: `SLIP-${Math.floor(Math.random() * 10000)}`,
-            accountCode: '743',
-            accountName: '消耗品費',
-            subAccount: '',
-            description: '事務用品',
-            taxCategory: '課税仕入10%',
-        };
-
         // 3. Insert into Database as OCR_DONE
         const receipt = await prisma.receipt.create({
             data: {
@@ -46,20 +33,8 @@ export async function POST(request: NextRequest) {
                 contentType: file.type,
                 fileName: file.name,
                 fileSize: file.size,
-                status: 'OCR_DONE',
+                status: 'UPLOADED', // UPLOADED means not yet confirmed and no OCR
                 createdById: createdById || null,
-                
-                // Set Mock OCR Data
-                payee: mockData.payee,
-                amount: mockData.amount,
-                taxAmount: mockData.taxAmount,
-                receiptDate: mockData.receiptDate,
-                slipNo: mockData.slipNo,
-                accountCode: mockData.accountCode,
-                accountName: mockData.accountName,
-                subAccount: mockData.subAccount,
-                description: mockData.description,
-                taxCategory: mockData.taxCategory,
             }
         });
 
