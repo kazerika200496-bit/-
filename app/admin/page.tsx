@@ -13,6 +13,7 @@ export default function AdminPage() {
     const [isMounted, setIsMounted] = useState(false);
     const [isDirty, setIsDirty] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
     useEffect(() => {
@@ -126,21 +127,17 @@ export default function AdminPage() {
     };
 
     const handleSave = async () => {
-        setIsLoading(true);
+        setIsSaving(true);
         try {
             const validItems = items.filter(i => i.name.trim() !== '');
             const validLocations = locations.filter(l => l.name.trim() !== '');
             const validSuppliers = suppliers.filter(s => s.name.trim() !== '');
 
-            for (const item of validItems) {
-                await fetch('/api/items', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(item) });
-            }
-            for (const loc of validLocations) {
-                await fetch('/api/locations', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(loc) });
-            }
-            for (const sup of validSuppliers) {
-                await fetch('/api/suppliers', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(sup) });
-            }
+            const itemPromises = validItems.map(item => fetch('/api/items', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(item) }));
+            const locPromises = validLocations.map(loc => fetch('/api/locations', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(loc) }));
+            const supPromises = validSuppliers.map(sup => fetch('/api/suppliers', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(sup) }));
+
+            await Promise.all([...itemPromises, ...locPromises, ...supPromises]);
 
             localStorage.setItem('master_items', JSON.stringify(validItems));
             localStorage.setItem('master_locations', JSON.stringify(validLocations));
@@ -155,11 +152,11 @@ export default function AdminPage() {
         } catch (err) {
             alert('保存に失敗しました。');
         } finally {
-            setIsLoading(false);
+            setIsSaving(false);
         }
     };
 
-    if (!isMounted || isLoading) return <div style={{ padding: '20px' }}>読み込み中...</div>;
+    if (!isMounted || isLoading) return <div style={{ padding: '20px', textAlign: 'center', fontSize: '18px', color: '#666' }}>データ読み込み中...</div>;
 
     if (errorMsg) return (
         <div style={{ padding: '40px', textAlign: 'center' }}>
@@ -183,8 +180,14 @@ export default function AdminPage() {
                     ⚙️ マスタ管理 {isDirty && <span style={{ fontSize: '14px', fontWeight: 'normal', color: '#d93025', marginLeft: '10px' }}>⚠️ 未保存の変更があります</span>}
                 </h1>
                 <div style={{ display: 'flex', gap: '8px' }}>
-                    <button onClick={handleSave} style={{ padding: '10px 16px', backgroundColor: '#34a853', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>💾 変更を保存</button>
-                    <Link href="/" style={{ padding: '10px 16px', backgroundColor: '#6c757d', color: '#fff', textDecoration: 'none', borderRadius: '8px', fontWeight: 'bold' }}>⬅️ 戻る</Link>
+                    <button 
+                        onClick={handleSave} 
+                        disabled={isSaving}
+                        style={{ padding: '10px 16px', backgroundColor: isSaving ? '#9ca3af' : '#34a853', color: '#fff', border: 'none', borderRadius: '8px', cursor: isSaving ? 'not-allowed' : 'pointer', fontWeight: 'bold' }}
+                    >
+                        {isSaving ? '⏳ 保存中...' : '💾 変更を保存'}
+                    </button>
+                    <Link href="/" style={{ padding: '10px 16px', backgroundColor: '#6c757d', color: '#fff', textDecoration: 'none', borderRadius: '8px', fontWeight: 'bold', display: 'flex', alignItems: 'center' }}>⬅️ 戻る</Link>
                 </div>
             </header>
 

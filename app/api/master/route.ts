@@ -10,9 +10,11 @@ export async function GET() {
         return NextResponse.json({ items: [], locations: [], suppliers: [] });
     }
     try {
-        const items = await prisma.item.findMany();
-        const locations = await prisma.location.findMany({ orderBy: { id: 'asc' } });
-        const suppliers = await prisma.supplier.findMany({ orderBy: { id: 'asc' } });
+        const [items, locations, suppliers] = await Promise.all([
+            prisma.item.findMany(),
+            prisma.location.findMany({ orderBy: { id: 'asc' } }),
+            prisma.supplier.findMany({ orderBy: { id: 'asc' } })
+        ]);
 
         // Session Role Filter
         const session = await getSession();
