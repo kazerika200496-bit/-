@@ -20,6 +20,10 @@ export async function PATCH(request: Request) {
     try {
         const { id, ...data } = await request.json();
         
+        if (!data.name || data.name.trim() === '') {
+            return NextResponse.json({ error: 'Name is required' }, { status: 400 });
+        }
+
         const isNew = id.startsWith('new-');
         const finalId = isNew ? `sup-${Date.now()}-${Math.floor(Math.random() * 1000)}` : id;
 
@@ -35,5 +39,23 @@ export async function PATCH(request: Request) {
     } catch (error) {
         console.error('Supplier update error:', error);
         return NextResponse.json({ error: 'Failed to update supplier' }, { status: 500 });
+    }
+}
+
+export async function DELETE(request: Request) {
+    const session = await getSession();
+    if (session?.role !== 'admin') {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
+    try {
+        const { searchParams } = new URL(request.url);
+        const id = searchParams.get('id');
+        if (!id) return NextResponse.json({ error: 'ID is required' }, { status: 400 });
+        
+        await prisma.supplier.delete({ where: { id } });
+        return NextResponse.json({ success: true });
+    } catch (error) {
+        console.error('Supplier delete error:', error);
+        return NextResponse.json({ error: 'Failed to delete supplier' }, { status: 500 });
     }
 }

@@ -80,6 +80,51 @@ export default function AdminPage() {
         setIsDirty(true);
     };
 
+    const deleteItem = async (id: string) => {
+        if (!confirm('この品目を削除してもよろしいですか？')) return;
+        if (!id.startsWith('new-')) {
+            try {
+                const res = await fetch(`/api/items?id=${id}`, { method: 'DELETE' });
+                if (!res.ok) throw new Error('Failed to delete');
+            } catch (err) {
+                alert('削除に失敗しました。');
+                return;
+            }
+        }
+        setItems(items.filter(i => i.id !== id));
+        setIsDirty(true);
+    };
+
+    const deleteLocation = async (id: string) => {
+        if (!confirm('この拠点を削除してもよろしいですか？')) return;
+        if (!id.startsWith('new-')) {
+            try {
+                const res = await fetch(`/api/locations?id=${id}`, { method: 'DELETE' });
+                if (!res.ok) throw new Error('Failed to delete');
+            } catch (err) {
+                alert('削除に失敗しました。');
+                return;
+            }
+        }
+        setLocations(locations.filter(l => l.id !== id));
+        setIsDirty(true);
+    };
+
+    const deleteSupplier = async (id: string) => {
+        if (!confirm('この業者を削除してもよろしいですか？')) return;
+        if (!id.startsWith('new-')) {
+            try {
+                const res = await fetch(`/api/suppliers?id=${id}`, { method: 'DELETE' });
+                if (!res.ok) throw new Error('Failed to delete');
+            } catch (err) {
+                alert('削除に失敗しました。');
+                return;
+            }
+        }
+        setSuppliers(suppliers.filter(s => s.id !== id));
+        setIsDirty(true);
+    };
+
     const handleSave = async () => {
         setIsLoading(true);
         try {
@@ -170,12 +215,13 @@ export default function AdminPage() {
                                     <th style={{ padding: '10px', textAlign: 'left', fontSize: '13px' }}>品目名</th>
                                     <th style={{ padding: '10px', textAlign: 'left', fontSize: '13px' }}>単価</th>
                                     <th style={{ padding: '10px', textAlign: 'left', fontSize: '13px' }}>単位</th>
+                                    <th style={{ padding: '10px', textAlign: 'center', fontSize: '13px', width: '60px' }}>操作</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {items.map(item => (
                                     <tr key={item.id} style={{ borderBottom: '1px solid #f0f0f0' }}>
-                                        <td style={{ padding: '8px' }}>{item.id}</td>
+                                        <td style={{ padding: '8px' }}>{item.id.startsWith('new-') ? '新規' : item.id}</td>
                                         <td style={{ padding: '8px' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                 <div style={{ width: '40px', height: '40px', backgroundColor: '#f0f0f0', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
@@ -189,13 +235,16 @@ export default function AdminPage() {
                                             </div>
                                         </td>
                                         <td style={{ padding: '8px' }}>
-                                            <input value={item.name} onChange={e => updateItem(item.id, 'name', e.target.value)} style={{ width: '100%', padding: '5px', border: '1px solid #eee' }} />
+                                            <input value={item.name} onChange={e => updateItem(item.id, 'name', e.target.value)} style={{ width: '100%', padding: '5px', border: '1px solid #eee' }} placeholder="入力必須" />
                                         </td>
                                         <td style={{ padding: '8px' }}>
                                             <input type="number" value={item.price || 0} onChange={e => updateItem(item.id, 'price', Number(e.target.value))} style={{ width: '70px', padding: '5px', border: '1px solid #eee', textAlign: 'right' }} />
                                         </td>
                                         <td style={{ padding: '8px' }}>
                                             <input value={item.unit} onChange={e => updateItem(item.id, 'unit', e.target.value)} style={{ width: '40px', padding: '5px', border: '1px solid #eee' }} />
+                                        </td>
+                                        <td style={{ padding: '8px', textAlign: 'center' }}>
+                                            <button onClick={() => deleteItem(item.id)} style={{ padding: '4px 8px', backgroundColor: '#fee2e2', color: '#dc2626', border: '1px solid #fca5a5', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>削除</button>
                                         </td>
                                     </tr>
                                 ))}
@@ -209,6 +258,7 @@ export default function AdminPage() {
                                 <tr style={{ borderBottom: '2px solid #f0f0f0' }}>
                                     <th style={{ padding: '12px', textAlign: 'left' }}>拠点ID</th>
                                     <th style={{ padding: '12px', textAlign: 'left' }}>拠点名</th>
+                                    <th style={{ padding: '12px', textAlign: 'center', width: '60px' }}>操作</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -217,6 +267,9 @@ export default function AdminPage() {
                                         <td style={{ padding: '12px' }}>{loc.id.startsWith('new-') ? '新規' : loc.id}</td>
                                         <td style={{ padding: '12px' }}>
                                             <input value={loc.name} onChange={e => updateLocation(loc.id, 'name', e.target.value)} style={{ width: '100%', padding: '5px', border: '1px solid #eee' }} placeholder="入力必須" />
+                                        </td>
+                                        <td style={{ padding: '12px', textAlign: 'center' }}>
+                                            <button onClick={() => deleteLocation(loc.id)} style={{ padding: '4px 8px', backgroundColor: '#fee2e2', color: '#dc2626', border: '1px solid #fca5a5', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>削除</button>
                                         </td>
                                     </tr>
                                 ))}
@@ -231,6 +284,7 @@ export default function AdminPage() {
                                     <th style={{ padding: '12px', textAlign: 'left' }}>業者名</th>
                                     <th style={{ padding: '12px', textAlign: 'left' }}>発注方法</th>
                                     <th style={{ padding: '12px', textAlign: 'left' }}>納品/締切</th>
+                                    <th style={{ padding: '12px', textAlign: 'center', width: '60px' }}>操作</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -250,6 +304,9 @@ export default function AdminPage() {
                                             納期:<input value={sup.deliveryDayOfWeek || ''} placeholder="火" onChange={e => updateSupplier(sup.id, 'deliveryDayOfWeek', e.target.value)} style={{ width: '40px', padding: '5px', margin: '0 5px' }} />
                                             締切:<input value={sup.cutoffDayOfWeek || ''} placeholder="月" onChange={e => updateSupplier(sup.id, 'cutoffDayOfWeek', e.target.value)} style={{ width: '40px', padding: '5px', margin: '0 5px' }} />
                                             時刻:<input value={sup.cutoffTime || ''} placeholder="17:00" onChange={e => updateSupplier(sup.id, 'cutoffTime', e.target.value)} style={{ width: '60px', padding: '5px' }} />
+                                        </td>
+                                        <td style={{ padding: '12px', textAlign: 'center' }}>
+                                            <button onClick={() => deleteSupplier(sup.id)} style={{ padding: '4px 8px', backgroundColor: '#fee2e2', color: '#dc2626', border: '1px solid #fca5a5', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>削除</button>
                                         </td>
                                     </tr>
                                 ))}
