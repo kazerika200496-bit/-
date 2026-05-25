@@ -119,8 +119,8 @@ export default function ReceiptForm({ receipt }: { receipt: any }) {
 
     return (
         <form onSubmit={handleConfirm}>
-            <div style={{ display: 'flex', gap: '15px', marginBottom: '15px', flexWrap: 'wrap' }}>
-                <div style={{ flex: '1 1 150px' }}>
+            <div className="form-row">
+                <div className="form-col">
                     <label style={labelStyle}>日付 {requiredBadge}</label>
                     <input
                         type="date"
@@ -130,7 +130,7 @@ export default function ReceiptForm({ receipt }: { receipt: any }) {
                         style={{ ...inputStyle, borderColor: !receiptDate ? '#fca5a5' : '#cbd5e1', backgroundColor: !receiptDate ? '#fef2f2' : '#fff' }}
                     />
                 </div>
-                <div style={{ flex: '1 1 150px' }}>
+                <div className="form-col">
                     <label style={labelStyle}>伝票No.</label>
                     <input
                         type="text"
@@ -154,8 +154,8 @@ export default function ReceiptForm({ receipt }: { receipt: any }) {
                 />
             </div>
 
-            <div style={{ display: 'flex', gap: '15px', marginBottom: '15px', padding: '15px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #f1f5f9', flexWrap: 'wrap' }}>
-                <div style={{ flex: '1 1 150px' }}>
+            <div className="form-row" style={{ padding: '15px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
+                <div className="form-col">
                     <label style={labelStyle}>勘定科目</label>
                     <input
                         list="accounts"
@@ -173,7 +173,7 @@ export default function ReceiptForm({ receipt }: { receipt: any }) {
                         </div>
                     )}
                 </div>
-                <div style={{ flex: '1 1 150px' }}>
+                <div className="form-col">
                     <label style={labelStyle}>補助科目</label>
                     <input
                         type="text"
@@ -196,8 +196,8 @@ export default function ReceiptForm({ receipt }: { receipt: any }) {
                 />
             </div>
 
-            <div style={{ display: 'flex', gap: '15px', marginBottom: '15px', borderTop: '1px solid #f1f5f9', paddingTop: '15px', flexWrap: 'wrap' }}>
-                <div style={{ flex: '1 1 200px' }}>
+            <div className="form-row" style={{ borderTop: '1px solid #f1f5f9', paddingTop: '15px' }}>
+                <div className="form-col">
                     <label style={labelStyle}>税区分</label>
                     <select
                         value={taxCategory}
@@ -208,7 +208,7 @@ export default function ReceiptForm({ receipt }: { receipt: any }) {
                         {TAX_CATEGORIES.map(tax => <option key={tax} value={tax}>{tax}</option>)}
                     </select>
                 </div>
-                <div style={{ flex: '1 1 200px' }}>
+                <div className="form-col">
                     <label style={labelStyle}>合計金額 {requiredBadge}</label>
                     <input
                         type="number"
@@ -219,7 +219,7 @@ export default function ReceiptForm({ receipt }: { receipt: any }) {
                         style={{ ...inputStyle, fontFamily: 'monospace', fontSize: '16px', borderColor: !amount.trim() ? '#fca5a5' : '#cbd5e1', backgroundColor: !amount.trim() ? '#fef2f2' : '#fff' }}
                     />
                 </div>
-                <div style={{ flex: '1 1 200px' }}>
+                <div className="form-col">
                     <label style={labelStyle}>消費税額</label>
                     <input
                         type="number"

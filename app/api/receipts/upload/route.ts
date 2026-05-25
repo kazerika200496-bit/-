@@ -24,17 +24,44 @@ export async function POST(request: NextRequest) {
         const base64Image = await fileToBase64(file);
 
         // 2. Mock OCR Processing (Simulate 2s delay)
+        // 実装予定: ここで Vercel Blob または Vision API 等に画像を投げて OCR 結果を取得する
         await new Promise(resolve => setTimeout(resolve, 2000));
 
-        // 3. Insert into Database as OCR_DONE
+        // 現在は本番向けダミーデータ（固定値）を入れない仕様のため、OCR結果は全て null とする
+        const ocrResult = {
+            payee: null,
+            amount: null,
+            taxAmount: null,
+            receiptDate: null,
+            slipNo: null,
+            accountCode: null,
+            accountName: null,
+            subAccount: null,
+            description: null,
+            taxCategory: null,
+        };
+
+        // 3. Insert into Database as UPLOADED (or OCR_DONE if OCR actually ran)
         const receipt = await prisma.receipt.create({
             data: {
                 imageUrl: base64Image,
                 contentType: file.type,
                 fileName: file.name,
                 fileSize: file.size,
-                status: 'UPLOADED', // UPLOADED means not yet confirmed and no OCR
+                status: 'UPLOADED', 
                 createdById: createdById || null,
+                
+                // OCR結果の反映処理（現在は全てnullが入るため空欄になる）
+                payee: ocrResult.payee,
+                amount: ocrResult.amount,
+                taxAmount: ocrResult.taxAmount,
+                receiptDate: ocrResult.receiptDate,
+                slipNo: ocrResult.slipNo,
+                accountCode: ocrResult.accountCode,
+                accountName: ocrResult.accountName,
+                subAccount: ocrResult.subAccount,
+                description: ocrResult.description,
+                taxCategory: ocrResult.taxCategory,
             }
         });
 
