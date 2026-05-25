@@ -57,29 +57,56 @@ export default function AdminPage() {
         setIsDirty(true);
     };
 
+    const updateLocation = (id: string, field: keyof Location, value: any) => {
+        setLocations(locations.map(l => l.id === id ? { ...l, [field]: value } : l));
+        setIsDirty(true);
+    };
+
+    const addItem = () => {
+        const newItem: Item = { id: `new-${Date.now()}`, name: '', price: 0, unit: '', category: 'その他', defaultSupplierId: suppliers[0]?.id || '' };
+        setItems([...items, newItem]);
+        setIsDirty(true);
+    };
+
+    const addLocation = () => {
+        const newLoc: Location = { id: `new-${Date.now()}`, name: '', type: '店舗' };
+        setLocations([...locations, newLoc]);
+        setIsDirty(true);
+    };
+
+    const addSupplier = () => {
+        const newSup: Supplier = { id: `new-${Date.now()}`, name: '', type: '業者', method: '訪問' };
+        setSuppliers([...suppliers, newSup]);
+        setIsDirty(true);
+    };
+
     const handleSave = async () => {
         setIsLoading(true);
         try {
-            // 本来は一括保存用のAPIを作るべきだが、最短のため各モデルごとに保存するなどの対応
-            // ここでは簡易的に「保存されました」とする（本来は各APIを呼ぶ）
-            // 実際には PATCH /api/items などが必要
+            const validItems = items.filter(i => i.name.trim() !== '');
+            const validLocations = locations.filter(l => l.name.trim() !== '');
+            const validSuppliers = suppliers.filter(s => s.name.trim() !== '');
 
-            // 例: Itemsの保存
-            for (const item of items) {
-                await fetch('/api/items', {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(item)
-                });
+            for (const item of validItems) {
+                await fetch('/api/items', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(item) });
+            }
+            for (const loc of validLocations) {
+                await fetch('/api/locations', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(loc) });
+            }
+            for (const sup of validSuppliers) {
+                await fetch('/api/suppliers', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(sup) });
             }
 
-            // localStorageへの同期（既存アプリ用）
-            localStorage.setItem('master_items', JSON.stringify(items));
-            localStorage.setItem('master_locations', JSON.stringify(locations));
-            localStorage.setItem('master_suppliers', JSON.stringify(suppliers));
+            localStorage.setItem('master_items', JSON.stringify(validItems));
+            localStorage.setItem('master_locations', JSON.stringify(validLocations));
+            localStorage.setItem('master_suppliers', JSON.stringify(validSuppliers));
+
+            setItems(validItems);
+            setLocations(validLocations);
+            setSuppliers(validSuppliers);
 
             setIsDirty(false);
-            alert('変更をサーバーとローカルに保存しました。');
+            alert('変更をサーバーとローカルに保存しました。空行は破棄されました。');
         } catch (err) {
             alert('保存に失敗しました。');
         } finally {
@@ -117,12 +144,20 @@ export default function AdminPage() {
             </header>
 
             <main>
-                <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
-                    {(['items', 'locations', 'suppliers'] as const).map(tab => (
-                        <button key={tab} onClick={() => setActiveTab(tab)} style={{ padding: '10px 20px', borderRadius: '8px', border: '1px solid #ddd', backgroundColor: activeTab === tab ? '#1a73e8' : '#fff', color: activeTab === tab ? '#fff' : '#333', cursor: 'pointer', fontWeight: 'bold' }}>
-                            {tab === 'items' ? `品目 (${items.length})` : tab === 'locations' ? `拠点 (${locations.length})` : `業者 (${suppliers.length})`}
-                        </button>
-                    ))}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                        {(['items', 'locations', 'suppliers'] as const).map(tab => (
+                            <button key={tab} onClick={() => setActiveTab(tab)} style={{ padding: '10px 20px', borderRadius: '8px', border: '1px solid #ddd', backgroundColor: activeTab === tab ? '#1a73e8' : '#fff', color: activeTab === tab ? '#fff' : '#333', cursor: 'pointer', fontWeight: 'bold' }}>
+                                {tab === 'items' ? `品目 (${items.length})` : tab === 'locations' ? `拠点 (${locations.length})` : `業者 (${suppliers.length})`}
+                            </button>
+                        ))}
+                    </div>
+                    <button 
+                        onClick={() => activeTab === 'items' ? addItem() : activeTab === 'locations' ? addLocation() : addSupplier()}
+                        style={{ padding: '8px 16px', backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', color: '#0f172a' }}
+                    >
+                        ➕ {activeTab === 'items' ? '品目を追加' : activeTab === 'locations' ? '拠点を追加' : '業者を追加'}
+                    </button>
                 </div>
 
                 <div style={{ backgroundColor: '#fff', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', maxHeight: '70vh', overflowY: 'auto' }}>
@@ -168,6 +203,27 @@ export default function AdminPage() {
                         </table>
                     )}
 
+                    {activeTab === 'locations' && (
+                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                            <thead>
+                                <tr style={{ borderBottom: '2px solid #f0f0f0' }}>
+                                    <th style={{ padding: '12px', textAlign: 'left' }}>拠点ID</th>
+                                    <th style={{ padding: '12px', textAlign: 'left' }}>拠点名</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {locations.map(loc => (
+                                    <tr key={loc.id} style={{ borderBottom: '1px solid #eee' }}>
+                                        <td style={{ padding: '12px' }}>{loc.id.startsWith('new-') ? '新規' : loc.id}</td>
+                                        <td style={{ padding: '12px' }}>
+                                            <input value={loc.name} onChange={e => updateLocation(loc.id, 'name', e.target.value)} style={{ width: '100%', padding: '5px', border: '1px solid #eee' }} placeholder="入力必須" />
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
+
                     {activeTab === 'suppliers' && (
                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
@@ -180,7 +236,9 @@ export default function AdminPage() {
                             <tbody>
                                 {suppliers.map(sup => (
                                     <tr key={sup.id} style={{ borderBottom: '1px solid #eee' }}>
-                                        <td style={{ padding: '12px' }}>{sup.name}</td>
+                                        <td style={{ padding: '12px' }}>
+                                            <input value={sup.name} onChange={e => updateSupplier(sup.id, 'name', e.target.value)} style={{ width: '100%', padding: '5px', border: '1px solid #eee' }} placeholder="入力必須" />
+                                        </td>
                                         <td style={{ padding: '12px' }}>
                                             <select value={sup.method || '訪問'} onChange={e => updateSupplier(sup.id, 'method', e.target.value)} style={{ padding: '5px' }}>
                                                 <option value="訪問">訪問</option>

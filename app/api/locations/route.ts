@@ -5,18 +5,11 @@ import { getSession } from '@/lib/auth';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-    // DATABASE_URL がない場合はビルド時とみなして空配列を返す
     if (!process.env.DATABASE_URL && process.env.NODE_ENV === 'production') {
         return NextResponse.json([]);
     }
-    const items = await prisma.item.findMany();
-
-    const session = await getSession();
-    if (session?.role === 'store') {
-        return NextResponse.json(items.map(item => ({ ...item, price: null })));
-    }
-
-    return NextResponse.json(items);
+    const locations = await prisma.location.findMany({ orderBy: { id: 'asc' } });
+    return NextResponse.json(locations);
 }
 
 export async function PATCH(request: Request) {
@@ -27,11 +20,10 @@ export async function PATCH(request: Request) {
     try {
         const { id, ...data } = await request.json();
         
-        // Ensure new IDs are created properly if they come from the frontend as 'new-...'
         const isNew = id.startsWith('new-');
-        const finalId = isNew ? `item-${Date.now()}-${Math.floor(Math.random() * 1000)}` : id;
+        const finalId = isNew ? `loc-${Date.now()}-${Math.floor(Math.random() * 1000)}` : id;
 
-        const item = await prisma.item.upsert({
+        const location = await prisma.location.upsert({
             where: { id: finalId },
             update: data,
             create: {
@@ -39,9 +31,9 @@ export async function PATCH(request: Request) {
                 ...data
             }
         });
-        return NextResponse.json(item);
+        return NextResponse.json(location);
     } catch (error) {
-        console.error('Item update error:', error);
-        return NextResponse.json({ error: 'Failed to update item' }, { status: 500 });
+        console.error('Location update error:', error);
+        return NextResponse.json({ error: 'Failed to update location' }, { status: 500 });
     }
 }
