@@ -126,6 +126,9 @@ nav {
         max-height: none;
         overflow-y: visible;
     }
+    .right-panel {
+        margin-top: 20px;
+    }
 }
 
 @media (max-width: 600px) {

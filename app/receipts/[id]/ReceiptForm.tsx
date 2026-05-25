@@ -127,6 +127,7 @@ export default function ReceiptForm({ receipt }: { receipt: any }) {
                         value={receiptDate}
                         onChange={(e) => setReceiptDate(e.target.value)}
                         required
+                        placeholder="YYYY/MM/DD"
                         style={{ ...inputStyle, borderColor: !receiptDate ? '#fca5a5' : '#cbd5e1', backgroundColor: !receiptDate ? '#fef2f2' : '#fff' }}
                     />
                 </div>
@@ -149,9 +150,13 @@ export default function ReceiptForm({ receipt }: { receipt: any }) {
                     value={payee}
                     onChange={(e) => setPayee(e.target.value)}
                     required
-                    placeholder="※OCR未読取・要入力"
                     style={{ ...inputStyle, borderColor: !payee.trim() ? '#fca5a5' : '#cbd5e1', backgroundColor: !payee.trim() ? '#fef2f2' : '#fff' }}
                 />
+                {!payee.trim() && (
+                    <div style={{ fontSize: '12px', color: '#dc2626', marginTop: '4px' }}>
+                        ※手入力してください（OCR未接続のため）
+                    </div>
+                )}
             </div>
 
             <div className="form-row" style={{ padding: '15px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
@@ -215,7 +220,6 @@ export default function ReceiptForm({ receipt }: { receipt: any }) {
                         value={amount}
                         onChange={(e) => setAmount(e.target.value)}
                         required
-                        placeholder="0"
                         style={{ ...inputStyle, fontFamily: 'monospace', fontSize: '16px', borderColor: !amount.trim() ? '#fca5a5' : '#cbd5e1', backgroundColor: !amount.trim() ? '#fef2f2' : '#fff' }}
                     />
                 </div>
